@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "action": "bootstrap",
+  "action": "readiness",
   "sourceSha": "d29ef03dca233f71cc237e8d56d139b0231ec770",
-  "approve": "PROVISION:d29ef03dca233f71cc237e8d56d139b0231ec770",
-  "note": "Protected production bootstrap for the exact source that fixes production Worker release stamping. D1 capacity and WIF trust are repaired. Transactional email remains explicitly deferred."
+  "approve": "",
+  "note": "Read-only production readiness for the SHA-corrected source. No production resources, data, DNS or traffic are mutated."
 }

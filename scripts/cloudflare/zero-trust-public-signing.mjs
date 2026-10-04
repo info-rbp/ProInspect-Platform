@@ -13,6 +13,30 @@ const managed=[
   {name:'ProInspect Public Signing Health',domain:'proinspect.systems/api/public/workflow-health'},
 ];
 const policyName='ProInspect Public Signing Bypass';
+const reportToolDatabaseId='777186a0-e6ca-43f5-8f50-448bd4454046';
+
+async function d1Query(sql){
+  const result=await cf('/accounts/'+account+'/d1/database/'+reportToolDatabaseId+'/query',{
+    method:'POST',
+    body:{sql},
+  });
+  const blocks=Array.isArray(result)?result:[result];
+  return blocks.flatMap(block=>Array.isArray(block?.results)?block.results:[]);
+}
+
+async function inspectReportToolDatabase(){
+  const rows=await d1Query("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
+  const names=rows.map(row=>String(row.name||'')).filter(Boolean);
+  const required=['report_deliveries','signature_requests','signature_parties','signature_fields'];
+  const missing=required.filter(name=>!names.includes(name));
+  let migrations=[];
+  if(names.includes('d1_migrations')){
+    migrations=await d1Query('SELECT * FROM d1_migrations ORDER BY id');
+  }
+  console.log('Report Tool D1 table readiness:');
+  console.log(JSON.stringify({databaseId:reportToolDatabaseId,required,missing,migrations},null,2));
+  return {names,missing,migrations};
+}
 
 async function cf(path,{method='GET',body}={}){
   const response=await fetch(API+path,{
@@ -146,6 +170,7 @@ async function verifyPublicBoundary(){
   },null,2));
 }
 
+const reportDb=await inspectReportToolDatabase();
 const apps=await listApps();
 const protectedSummaries=apps
   .filter(app=>{
@@ -165,7 +190,7 @@ console.log('Managed public-path plan:');
 console.log(JSON.stringify(states.map(({spec,current})=>({name:spec.name,domain:spec.domain,state:current.state})),null,2));
 
 if(mode==='plan'){
-  console.log('PLAN_OK: Access applications are readable; no changes made.');
+  console.log('PLAN_OK: Access applications are readable; Report Tool D1 missing workflow tables: '+reportDb.missing.join(', '));
   process.exit(0);
 }
 

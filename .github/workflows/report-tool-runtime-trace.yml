@@ -29,15 +29,21 @@ jobs:
           rm -f /tmp/report-tool-tail.log /tmp/health.out
           timeout 35s npx --yes wrangler@4.147.0 tail proinspect-property-report-creation-tool --format json > /tmp/report-tool-tail.log 2>&1 &
           tail_pid=$!
-          sleep 8
-          curl -sS -D /tmp/health.headers -o /tmp/health.out --max-time 15 https://proinspect.systems/api/public/workflow-health || true
+          sleep 15
+          TRACE_ID="pi-health-trace-${GITHUB_RUN_ID}"
+          curl -sS -D /tmp/health.headers -o /tmp/health.out --max-time 15 "https://proinspect.systems/api/public/workflow-health?trace=${TRACE_ID}" || true
+          sleep 2
+          curl -sS -o /dev/null --max-time 15 "https://proinspect.systems/api/public/workflow-health?trace=${TRACE_ID}-2" || true
           echo "=== health headers ==="
           cat /tmp/health.headers || true
           echo "=== health body ==="
           cat /tmp/health.out || true
-          sleep 8
+          sleep 10
           kill "$tail_pid" 2>/dev/null || true
           wait "$tail_pid" 2>/dev/null || true
           echo
-          echo "=== bounded worker tail ==="
-          tail -n 120 /tmp/report-tool-tail.log
+          echo "=== matching worker tail ==="
+          grep -n -B 35 -A 120 "pi-health-trace" /tmp/report-tool-tail.log || {
+            echo "Tagged health request was not observed by the tailed Worker."
+            tail -n 180 /tmp/report-tool-tail.log
+          }

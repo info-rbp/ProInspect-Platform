@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/zero-trust-public-signing.yml
       - scripts/cloudflare/zero-trust-public-signing.mjs
+      - ops/zero-trust-public-signing-request.json
 
 permissions:
   contents: read
@@ -34,7 +35,6 @@ jobs:
   reconcile:
     name: Reconcile public signing Access paths
     needs: discover
-    environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -45,5 +45,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Validate explicit owner-authorized Access request
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const req=JSON.parse(fs.readFileSync('ops/zero-trust-public-signing-request.json','utf8'));
+          const expected=[
+            'proinspect.systems/sign/*',
+            'proinspect.systems/api/public/signing/*',
+            'proinspect.systems/api/public/workflow-health'
+          ];
+          if(req.schemaVersion!==1||req.action!=='apply')throw new Error('Invalid Zero Trust request.');
+          if(req.approve!=='ZERO-TRUST-PUBLIC-SIGNING:proinspect.systems')throw new Error('Explicit Zero Trust approval token missing.');
+          if(JSON.stringify(req.paths)!==JSON.stringify(expected))throw new Error('Approved Zero Trust path set changed unexpectedly.');
+          console.log('Explicit exact-path Zero Trust request validated.');
+          NODE
       - name: Apply exact-path Access bypass applications
         run: node scripts/cloudflare/zero-trust-public-signing.mjs apply

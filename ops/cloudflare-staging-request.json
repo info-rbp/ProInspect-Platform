@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
   "action": "rehearse",
-  "sourceSha": "a82a5f09a4f3be4f445016318294d13fee60510f",
-  "note": "Final rehearsal for the production controller that deploys through protected main. Transactional email remains explicitly deferred; migration, runtime and non-email gates remain enforced."
+  "sourceSha": "d29ef03dca233f71cc237e8d56d139b0231ec770",
+  "note": "Rehearse the production runtime SHA-stamping correction. Transactional email remains explicitly deferred; migration, runtime, exact-source and non-email gates remain enforced."
 }

@@ -1,7 +1,7 @@
 name: Cloudflare production release
 on:
   push:
-    branches: [release/cloudflare-platform]
+    branches: [release/cloudflare-platform, main]
     paths: [ops/cloudflare-production-request.json]
 permissions:
   contents: read

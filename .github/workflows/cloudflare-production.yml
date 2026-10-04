@@ -27,8 +27,6 @@ jobs:
         name: Validate immutable production request and successful source CI
         env:
           GH_TOKEN: ${{ github.token }}
-      APPS_SCRIPT_WEBHOOK_URL: ${{ vars.APPS_SCRIPT_PRODUCTION_WEBHOOK_URL }}
-      APPS_SCRIPT_WEBHOOK_TOKEN: ${{ secrets.APPS_SCRIPT_PRODUCTION_WEBHOOK_TOKEN }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
@@ -132,6 +130,8 @@ jobs:
       GOOGLE_CALENDAR_ID: c_4bf5fc54ee54bf60371059cf824ec7e018fb6c43ca66bbdd4051fafaa74e3c32@group.calendar.google.com
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
+      APPS_SCRIPT_WEBHOOK_URL: ${{ vars.APPS_SCRIPT_PRODUCTION_WEBHOOK_URL }}
+      APPS_SCRIPT_WEBHOOK_TOKEN: ${{ secrets.APPS_SCRIPT_PRODUCTION_WEBHOOK_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:

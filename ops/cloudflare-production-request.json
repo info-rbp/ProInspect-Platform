@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "action": "readiness",
+  "action": "bootstrap",
   "sourceSha": "9b88c5e59d8c6d899464256a1d6016d2294271d1",
-  "approve": "",
-  "note": "Read-only production readiness for the corrected legacy production document-bucket source. No production resources, data, DNS or traffic are mutated."
+  "approve": "PROVISION:9b88c5e59d8c6d899464256a1d6016d2294271d1",
+  "note": "Idempotent protected production bootstrap for the corrected production document-bucket source. Verification, staging rehearsal and production readiness have passed. Transactional email remains explicitly deferred."
 }

@@ -1,0 +1,49 @@
+name: Zero Trust public signing paths
+
+on:
+  push:
+    branches:
+      - ops/zero-trust-public-signing
+    paths:
+      - .github/workflows/zero-trust-public-signing.yml
+      - scripts/cloudflare/zero-trust-public-signing.mjs
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zero-trust-public-signing
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    name: Discover Access state
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read-only Zero Trust discovery
+        run: node scripts/cloudflare/zero-trust-public-signing.mjs plan
+
+  reconcile:
+    name: Reconcile public signing Access paths
+    needs: discover
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply exact-path Access bypass applications
+        run: node scripts/cloudflare/zero-trust-public-signing.mjs apply

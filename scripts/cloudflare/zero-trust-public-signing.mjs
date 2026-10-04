@@ -120,7 +120,7 @@ async function verifyPublicBoundary(){
   for(const check of requests){
     const response=await fetch(check.url,{redirect:'manual',headers:{'User-Agent':'ProInspect-ZeroTrust-Verification/1.0'}});
     const body=await response.text();
-    if(response.status!==check.expect)throw new Error(check.name+' expected HTTP '+check.expect+' but received '+response.status+'.');
+    if(response.status!==check.expect)throw new Error(check.name+' expected HTTP '+check.expect+' but received '+response.status+'. Body: '+body.slice(0,500));
     if(check.body&&!body.includes(check.body))throw new Error(check.name+' response body did not contain expected marker.');
   }
 

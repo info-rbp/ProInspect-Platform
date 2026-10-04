@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
   "action": "rehearse",
-  "sourceSha": "6478143acaa959b401525798291def313b43ea1c",
-  "note": "Rehearse the frozen Cloudflare release with maintenance and live edge convergence safeguards. Transactional email remains explicitly deferred; all non-email migration, runtime and acceptance gates remain enforced."
+  "sourceSha": "a82a5f09a4f3be4f445016318294d13fee60510f",
+  "note": "Final rehearsal for the production controller that deploys through protected main. Transactional email remains explicitly deferred; migration, runtime and non-email gates remain enforced."
 }

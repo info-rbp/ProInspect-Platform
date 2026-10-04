@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "action": "readiness",
+  "action": "bootstrap",
   "sourceSha": "6478143acaa959b401525798291def313b43ea1c",
-  "approve": "",
-  "note": "Read-only production readiness for the owner-approved email-deferred Cloudflare cutover. Transactional email acceptance is deferred; all infrastructure, migration and non-email release gates remain active."
+  "approve": "PROVISION:6478143acaa959b401525798291def313b43ea1c",
+  "note": "Owner-approved production bootstrap after successful staging and readiness. Transactional email acceptance remains deferred; production resources deploy in maintenance mode."
 }

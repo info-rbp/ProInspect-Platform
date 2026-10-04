@@ -247,11 +247,39 @@ jobs:
         if: needs.request.outputs.action == 'migrate'
         env:
           GCP_BACKUP_BUCKET: business-plan-applicatio-17047-proinspect-migration-backups
+          GCP_FIRESTORE_BACKUP_BUCKET: business-plan-applicatio-17047-proinspect-firestore-backups
+          GCP_FIRESTORE_BACKUP_LOCATION: asia-southeast1
         run: |
           set -euo pipefail
           umask 077
           BACKUP_PREFIX="cloudflare-cutover/$SOURCE_SHA/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
-          FIRESTORE_URI="gs://$GCP_BACKUP_BUCKET/$BACKUP_PREFIX/firestore"
+
+          FIRESTORE_BUCKET_URI="gs://$GCP_FIRESTORE_BACKUP_BUCKET"
+          EXISTING_LOCATION="$(gcloud storage buckets describe "$FIRESTORE_BUCKET_URI" --format='value(location)' 2>/dev/null || true)"
+          if [ -z "$EXISTING_LOCATION" ]; then
+            gcloud storage buckets create "$FIRESTORE_BUCKET_URI" \
+              --project="$GCP_PROJECT_ID" \
+              --location="$GCP_FIRESTORE_BACKUP_LOCATION" \
+              --uniform-bucket-level-access \
+              --public-access-prevention
+            gcloud storage buckets update "$FIRESTORE_BUCKET_URI" --versioning
+          else
+            NORMALIZED_LOCATION="$(printf '%s' "$EXISTING_LOCATION" | tr '[:upper:]' '[:lower:]')"
+            [ "$NORMALIZED_LOCATION" = "$GCP_FIRESTORE_BACKUP_LOCATION" ] || {
+              echo "Firestore backup bucket exists in incompatible location: $EXISTING_LOCATION" >&2
+              exit 1
+            }
+          fi
+
+          PROJECT_NUMBER="$(gcloud projects describe "$GCP_PROJECT_ID" --format='value(projectNumber)')"
+          gcloud storage buckets add-iam-policy-binding "$FIRESTORE_BUCKET_URI" \
+            --member="serviceAccount:$GCP_MIGRATION_SA" \
+            --role=roles/storage.objectAdmin >/dev/null
+          gcloud storage buckets add-iam-policy-binding "$FIRESTORE_BUCKET_URI" \
+            --member="serviceAccount:service-$PROJECT_NUMBER@gcp-sa-firestore.iam.gserviceaccount.com" \
+            --role=roles/storage.objectAdmin >/dev/null
+
+          FIRESTORE_URI="$FIRESTORE_BUCKET_URI/$BACKUP_PREFIX/firestore"
           STORAGE_URI="gs://$GCP_BACKUP_BUCKET/$BACKUP_PREFIX/firebase-storage"
           gcloud firestore export "$FIRESTORE_URI" --database=ai-studio-7242850f-c156-4268-aeb7-c8d47ff6931a --project="$GCP_PROJECT_ID" --impersonate-service-account="$GCP_MIGRATION_SA" --quiet
           gcloud storage ls "$FIRESTORE_URI/**" --impersonate-service-account="$GCP_MIGRATION_SA" > /tmp/firestore-backup-files.txt
@@ -259,11 +287,11 @@ jobs:
           gcloud storage rsync "gs://$GCP_FIREBASE_STORAGE_BUCKET" "$STORAGE_URI" --recursive --checksums-only --impersonate-service-account="$GCP_MIGRATION_SA"
           MIGRATION_TOKEN="$(gcloud auth print-access-token --impersonate-service-account="$GCP_MIGRATION_SA")"
           GOOGLE_OAUTH_ACCESS_TOKEN="$MIGRATION_TOKEN" node scripts/cloudflare/verify-gcs-backup.mjs --source-bucket="$GCP_FIREBASE_STORAGE_BUCKET" --backup-bucket="$GCP_BACKUP_BUCKET" --backup-prefix="$BACKUP_PREFIX/firebase-storage" --output=.cloudflare/storage-backup-evidence.json
-          export FIRESTORE_URI STORAGE_URI BACKUP_PREFIX
+          export FIRESTORE_URI STORAGE_URI BACKUP_PREFIX GCP_FIRESTORE_BACKUP_BUCKET GCP_FIRESTORE_BACKUP_LOCATION
           node - <<'NODE'
           const fs=require('fs');
           const storage=JSON.parse(fs.readFileSync('.cloudflare/storage-backup-evidence.json','utf8'));
-          const evidence={schemaVersion:1,sourceSha:process.env.SOURCE_SHA,firestoreExportUri:process.env.FIRESTORE_URI,firebaseStorageBackupUri:process.env.STORAGE_URI,storageObjectCount:storage.objectCount,storageTotalBytes:storage.totalBytes,storageManifestSha256:storage.sourceManifestSha256,storageBackupManifestSha256:storage.backupManifestSha256,reconciled:storage.reconciled===true,completedAt:new Date().toISOString()};
+          const evidence={schemaVersion:1,sourceSha:process.env.SOURCE_SHA,firestoreExportUri:process.env.FIRESTORE_URI,firestoreBackupBucket:process.env.GCP_FIRESTORE_BACKUP_BUCKET,firestoreBackupLocation:process.env.GCP_FIRESTORE_BACKUP_LOCATION,firebaseStorageBackupUri:process.env.STORAGE_URI,storageObjectCount:storage.objectCount,storageTotalBytes:storage.totalBytes,storageManifestSha256:storage.sourceManifestSha256,storageBackupManifestSha256:storage.backupManifestSha256,reconciled:storage.reconciled===true,completedAt:new Date().toISOString()};
           if(!evidence.reconciled)throw new Error('Final Firebase Storage backup did not reconcile.');
           fs.writeFileSync('.cloudflare/gcp-backup-evidence.json',JSON.stringify(evidence,null,2)+'\n',{mode:0o600});
           console.log(JSON.stringify({...evidence,firestoreExportUri:'[recorded]',firebaseStorageBackupUri:'[recorded]'},null,2));

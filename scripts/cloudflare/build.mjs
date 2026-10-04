@@ -13,7 +13,7 @@ const contract={sourceRoutes:0,bundledRoutes:0,adapters:Object.fromEntries(adapt
 const plugin={name:'reviewed-platform-boundaries',setup(b){
  b.onResolve({filter:/^proinspect:app$/},()=>({path:exact('server.ts')}));
  b.onResolve({filter:/firebase-admin\/firestore$/},()=>({path:exact('src/cloudflare/database.ts')}));
- b.onResolve({filter:/firebaseAdmin\.(js|ts)$|\/calendar\.(js|ts)$|\/addressValidation\.(js|ts)$/},args=>{
+ b.onResolve({filter:/firebaseAdmin\.(js|ts)$|\/calendar\.(js|ts)$|\/addressValidation\.(js|ts)$|\/integrationEvents\.(js|ts)$/},args=>{
   const resolved=path.resolve(args.resolveDir,args.path).replace(/\.js$/,'.ts');
   const relative=path.relative(root,resolved);return adapters.has(relative)?{path:exact(adapters.get(relative))}:null;
  });

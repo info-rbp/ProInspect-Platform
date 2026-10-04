@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
   "action": "rehearse",
-  "sourceSha": "0631d743e44ec38ac989724cf81344f5cf8271fe",
-  "note": "Repeat the verified migration and live staging checks with native email attachment mapping, private provider error diagnostics, and rate-safe mail verification. This request does not alter production data, DNS or acceptance flags."
+  "sourceSha": "d1c86c6c397d21349e6fa5dfeae1812165c79bad",
+  "note": "Rehearse the frozen Cloudflare release with transactional email explicitly deferred by owner approval. All migration, runtime, booking lifecycle and isolation checks remain required; this request does not alter production data or DNS."
 }

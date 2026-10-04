@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "action": "readiness",
+  "action": "bootstrap",
   "sourceSha": "d37fa26ee2747a5018d36e9f4b440dfa6ae207a0",
-  "approve": "",
-  "note": "Read-only production readiness for the Storage bucket-metadata permission correction. No production resources, data, DNS or traffic are mutated."
+  "approve": "PROVISION:d37fa26ee2747a5018d36e9f4b440dfa6ae207a0",
+  "note": "Idempotent protected production bootstrap for the Storage bucket-metadata permission correction. Verification, staging rehearsal and production readiness have passed. Transactional email remains explicitly deferred."
 }

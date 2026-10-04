@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "action": "readiness",
+  "action": "bootstrap",
   "sourceSha": "be502b205edbdb7077eb6abc12639dbc477edc96",
-  "approve": "",
-  "note": "Read-only production readiness for the Firestore backup-location corrected source. No production resources, data, DNS or traffic are mutated."
+  "approve": "PROVISION:be502b205edbdb7077eb6abc12639dbc477edc96",
+  "note": "Idempotent protected production bootstrap for the Firestore backup-location corrected source. Verification, staging rehearsal and production readiness have passed. Transactional email remains explicitly deferred."
 }

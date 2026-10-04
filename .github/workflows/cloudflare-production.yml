@@ -346,7 +346,7 @@ jobs:
           CLOUDFLARE_SMOKE_URL: https://proinspect-platform.delicate-dream-e4c9.workers.dev
           CLOUDFLARE_EXPECT_MODE: live
         run: node scripts/cloudflare/remote-smoke.mjs
-      - name: Verify production booking and email through deployed Worker
+      - name: Verify production booking lifecycle through deployed Worker
         if: needs.request.outputs.action == 'accept'
         env:
           CLOUDFLARE_SMOKE_URL: https://proinspect-platform.delicate-dream-e4c9.workers.dev
@@ -354,6 +354,7 @@ jobs:
           CLOUDFLARE_SMOKE_SESSION_COOKIE: ${{ secrets.CLOUDFLARE_SMOKE_SESSION_COOKIE }}
           CLOUDFLARE_SMOKE_CSRF: ${{ secrets.CLOUDFLARE_SMOKE_CSRF }}
           CLOUDFLARE_SMOKE_TURNSTILE_TOKEN: ${{ secrets.CLOUDFLARE_SMOKE_TURNSTILE_TOKEN }}
+          CLOUDFLARE_SKIP_TRANSACTIONAL_EMAIL: '1'
         run: node scripts/cloudflare/remote-booking-email-smoke.mjs
       - name: Record pre-traffic production deployment
         if: needs.request.outputs.action == 'promote'

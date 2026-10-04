@@ -38,8 +38,6 @@ jobs:
           SOURCE_INPUT: ${{ inputs.source_sha }}
           EVENT_NAME: ${{ github.event_name }}
           GH_TOKEN: ${{ github.token }}
-      APPS_SCRIPT_WEBHOOK_URL: ${{ vars.APPS_SCRIPT_STAGING_WEBHOOK_URL }}
-      APPS_SCRIPT_WEBHOOK_TOKEN: ${{ secrets.APPS_SCRIPT_STAGING_WEBHOOK_TOKEN }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
@@ -91,6 +89,8 @@ jobs:
       GOOGLE_CALENDAR_ID: c_4bf5fc54ee54bf60371059cf824ec7e018fb6c43ca66bbdd4051fafaa74e3c32@group.calendar.google.com
       REPO: ${{ github.repository }}
       GH_TOKEN: ${{ github.token }}
+      APPS_SCRIPT_WEBHOOK_URL: ${{ vars.APPS_SCRIPT_STAGING_WEBHOOK_URL }}
+      APPS_SCRIPT_WEBHOOK_TOKEN: ${{ secrets.APPS_SCRIPT_STAGING_WEBHOOK_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:

@@ -51,12 +51,12 @@ jobs:
           const fs=require('fs');
           const req=JSON.parse(fs.readFileSync('ops/zero-trust-public-signing-request.json','utf8'));
           const expected=[
-            'proinspect.systems/sign/*',
-            'proinspect.systems/api/public/signing/*',
-            'proinspect.systems/api/public/workflow-health'
+            'signing.proinspect.systems/sign/*',
+            'signing.proinspect.systems/api/public/signing/*',
+            'signing.proinspect.systems/api/public/workflow-health'
           ];
           if(req.schemaVersion!==1||req.action!=='apply')throw new Error('Invalid Zero Trust request.');
-          if(req.approve!=='ZERO-TRUST-PUBLIC-SIGNING:proinspect.systems')throw new Error('Explicit Zero Trust approval token missing.');
+          if(req.approve!=='ZERO-TRUST-PUBLIC-SIGNING:signing.proinspect.systems')throw new Error('Explicit Zero Trust approval token missing.');
           if(JSON.stringify(req.paths)!==JSON.stringify(expected))throw new Error('Approved Zero Trust path set changed unexpectedly.');
           console.log('Explicit exact-path Zero Trust request validated.');
           NODE

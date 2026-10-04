@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "action": "apply",
+  "approve": "ZERO-TRUST-PUBLIC-SIGNING:proinspect.systems",
+  "paths": [
+    "proinspect.systems/sign/*",
+    "proinspect.systems/api/public/signing/*",
+    "proinspect.systems/api/public/workflow-health"
+  ],
+  "note": "Owner-authorized narrow Access bypass for public Report Tool signing only. Do not alter the staff/editor Access application."
+}

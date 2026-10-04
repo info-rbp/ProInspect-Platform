@@ -42,7 +42,8 @@ const config={
   TURNSTILE_SITE_KEY:resources.turnstileSiteKey,
   ACCESS_TEAM_DOMAIN:'',
   ACCESS_AUDIENCE:'',
-  ADMIN_EMAILS:'info@proinspect.systems,info@remotebusinesspartner.com.au'
+  ADMIN_EMAILS:'info@proinspect.systems,info@remotebusinesspartner.com.au',
+  APPS_SCRIPT_WEBHOOK_URL:process.env.APPS_SCRIPT_WEBHOOK_URL||''
  },
  observability:{enabled:true},
  triggers:{crons:['*/5 * * * *']}

@@ -917,10 +917,10 @@ export function getAdminIntegrationStatuses(): AdminIntegrationStatus[] {
     },
     {
       id: 'google-sheets',
-      name: 'Google Sheets export',
-      configured: Boolean(process.env.GOOGLE_SHEETS_SPREADSHEET_ID),
-      status: process.env.GOOGLE_SHEETS_SPREADSHEET_ID ? 'connected' : 'optional',
-      detail: 'Optional operational spreadsheet synchronisation.',
+      name: 'Google Sheets / Apps Script',
+      configured: Boolean(process.env.APPS_SCRIPT_WEBHOOK_URL && process.env.APPS_SCRIPT_WEBHOOK_TOKEN),
+      status: process.env.APPS_SCRIPT_WEBHOOK_URL && process.env.APPS_SCRIPT_WEBHOOK_TOKEN ? 'connected' : 'configuration_required',
+      detail: 'Idempotent D1 integration-outbox projection into the operational Google Sheet.',
     },
     {
       id: 'xero',

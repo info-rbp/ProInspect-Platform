@@ -13,7 +13,7 @@
   "migrations": [{"tag":"cf-v1","new_sqlite_classes":["BookingCoordinator"]}],
   "queues": {"producers":[{"binding":"JOBS","queue":"proinspect-local-mail"}],"consumers":[{"queue":"proinspect-local-mail","max_batch_size":10,"max_retries":8,"dead_letter_queue":"proinspect-local-dead"}]},
   "send_email": [{"name":"EMAIL"}],
-  "vars": {"APP_URL":"http://localhost:8787","PLATFORM_ENVIRONMENT":"staging","LAUNCH_MODE":"live","BOOKING_EMAIL_FROM":"bookings@proinspect.systems","BOOKING_EMAIL_REPLY_TO":"info@proinspect.systems","STAGING_EMAIL_RECIPIENT":"test@example.test","ACCESS_DATA_ENCRYPTION_KEY_ID":"v1","RELEASE_SHA":"local"},
+  "vars": {"APP_URL":"http://localhost:8787","PLATFORM_ENVIRONMENT":"staging","LAUNCH_MODE":"live","BOOKING_EMAIL_FROM":"bookings@proinspect.systems","BOOKING_EMAIL_REPLY_TO":"info@proinspect.systems","STAGING_EMAIL_RECIPIENT":"test@example.test","ACCESS_DATA_ENCRYPTION_KEY_ID":"v1","RELEASE_SHA":"local","APPS_SCRIPT_WEBHOOK_URL":""},
   "observability": {"enabled":true},
   "triggers": {"crons":["*/5 * * * *"]}
 }

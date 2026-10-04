@@ -1,4 +1,4 @@
-# Cloudflare Completion Audit
+<!-- Historical completion-plan snapshot. For current authoritative status see docs/PRODUCTION_STATUS.md. -->\n\n# Cloudflare Completion Audit
 
 This is the finite backlog against the approved 50-point completion plan. “Implemented” means the repository capability exists and permanent CI exercises it; it does **not** mean production acceptance has happened.
 

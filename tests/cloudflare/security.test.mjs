@@ -7,6 +7,7 @@ import {seal,unseal,digest,randomToken} from '../../src/cloudflare/crypto.ts';
 import {consumeChallenge,sessionIdentity,verifyAccess,sameOrigin,checkRate} from '../../src/cloudflare/auth.ts';
 import {adminBucket,downloadFile} from '../../src/cloudflare/storage.ts';
 import {enqueueMail,deliverMail} from '../../src/cloudflare/mail.ts';
+import {emitIntegrationEvent,deliverIntegrationEvent} from '../../src/cloudflare/integrationEvents.ts';
 import {DEFAULT_DOCUMENT_PRODUCTS} from '../../src/documents/defaultDocumentProducts.ts';
 import {getDocumentWorkflowDefinition} from '../../src/documents/documentWorkflowDefinitions.ts';
 const baseEnv=()=>({ACCESS_DATA_ENCRYPTION_KEY:randomBytes(32).toString('base64'),ACCESS_DATA_ENCRYPTION_KEY_ID:'v1',FILE_SIGNING_KEY:randomToken(),APP_URL:'https://test.proinspect.systems',PLATFORM_ENVIRONMENT:'staging',STAGING_EMAIL_RECIPIENT:'controlled@example.test',BOOKING_EMAIL_FROM:'bookings@proinspect.systems'});
@@ -85,4 +86,22 @@ test('email queue contains no PII, staging delivery is redirected and repeated j
  await requestContext.run({env,identity,request:new Request(env.APP_URL),waitUntil(){}},async()=>{id=await enqueueMail({to:['customer@example.test'],subject:'private subject',text:'secret'});});
  assert.deepEqual(jobs,[{id}]);const row=await binding.prepare('SELECT encrypted_payload FROM email_outbox WHERE id=?').bind(id).first();assert.ok(!row.encrypted_payload.includes('secret'));
  await deliverMail(env,id);await deliverMail(env,id);assert.equal(sent.length,1);assert.deepEqual(sent[0].to,['controlled@example.test']);
+});
+
+test('integration outbox encrypts payloads and Apps Script delivery is idempotent',async()=>{
+ const {binding}=fixture(),jobs=[],waits=[];
+ const env={...baseEnv(),DB:binding,JOBS:{send:async x=>jobs.push(x)},APPS_SCRIPT_WEBHOOK_URL:'https://script.google.com/macros/s/test/exec',APPS_SCRIPT_WEBHOOK_TOKEN:'integration-secret'};
+ let eventId;
+ await requestContext.run({env,identity,request:new Request(env.APP_URL),waitUntil:p=>waits.push(p)},async()=>{
+  eventId=await emitIntegrationEvent({eventType:'booking.created',entityId:'booking-1',propertyId:'property-1',payload:{customerEmail:'private@example.test'}});
+ });
+ await Promise.all(waits);
+ assert.deepEqual(jobs,[{kind:'integration',id:eventId}]);
+ const stored=await binding.prepare('SELECT encrypted_payload,state FROM integration_outbox WHERE event_id=?').bind(eventId).first();
+ assert.equal(stored.state,'pending');assert.equal(stored.encrypted_payload.includes('private@example.test'),false);
+ const previous=global.fetch;let deliveries=0;
+ global.fetch=async(_url,init)=>{deliveries++;const body=JSON.parse(String(init.body));assert.equal(body.token,'integration-secret');assert.equal(body.event.eventId,eventId);return Response.json({ok:true,eventId,row:'Bookings!2'});};
+ try{await deliverIntegrationEvent(env,eventId);await deliverIntegrationEvent(env,eventId);}finally{global.fetch=previous;}
+ assert.equal(deliveries,1);
+ assert.equal((await binding.prepare('SELECT state FROM integration_outbox WHERE event_id=?').bind(eventId).first()).state,'sent');
 });

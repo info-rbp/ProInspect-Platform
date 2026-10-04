@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "action": "migrate",
-  "sourceSha": "9b88c5e59d8c6d899464256a1d6016d2294271d1",
-  "approve": "CUTOVER:9b88c5e59d8c6d899464256a1d6016d2294271d1",
-  "note": "Final production migration for the verified source with corrected Firestore backup location and actual production document bucket. Freeze legacy writer only after source-bucket preflight, capture D1 rollback bookmarks, take final Firestore and Storage backups, migrate and reconcile D1/R2/calendar data. Transactional email remains explicitly deferred."
+  "action": "bootstrap",
+  "sourceSha": "fd790c7ea94db7373c16c57d30f99fd78a7a8ad9",
+  "approve": "PROVISION:fd790c7ea94db7373c16c57d30f99fd78a7a8ad9",
+  "note": "Protected bootstrap for the exact verified end-state source. Apply reviewed D1 migrations including integration_outbox, preserve rollback resources, transfer existing cryptographic/report secrets, and deploy the full Worker in maintenance mode. Do not cut the custom domain in this phase."
 }

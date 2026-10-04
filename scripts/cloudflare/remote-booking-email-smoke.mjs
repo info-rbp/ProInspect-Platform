@@ -1,6 +1,7 @@
 import {createStagingTestSession} from './staging-test-session.mjs';
 const base=(process.env.CLOUDFLARE_SMOKE_URL||'').replace(/\/$/,'');
 const email=(process.env.CLOUDFLARE_SMOKE_EMAIL||'info@proinspect.systems').trim().toLowerCase();
+const skipEmail=process.env.CLOUDFLARE_SKIP_TRANSACTIONAL_EMAIL==='1';
 if(!/^https:\/\//.test(base))throw new Error('CLOUDFLARE_SMOKE_URL is required');
 if(!/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(email))throw new Error('Controlled smoke email is required');
 let session,headers={},authentication='',delivery;
@@ -51,27 +52,29 @@ try{
  const ics=await (await rawRequest('/api/bookings/manage/'+encodeURIComponent(token)+'/calendar')).text();
  if(!ics.includes('BEGIN:VCALENDAR')||!ics.includes('BEGIN:VEVENT'))throw new Error('Booking calendar invitation is invalid');
  let sent=false;
- for(let attempt=0;attempt<24;attempt++){
-  if(session){
-   delivery=await session.mailStatus(reference);
-   if(delivery.state==='sent'){sent=true;break;}
-   if(delivery.state==='failed'||['E_SENDER_NOT_VERIFIED','E_SENDER_DOMAIN_NOT_AVAILABLE','E_RECIPIENT_NOT_ALLOWED','E_VALIDATION_ERROR','E_FIELD_MISSING'].includes(delivery.code))throw new Error('Native email delivery blocked: '+delivery.code);
-  }else{
-   const managed=await request('/api/bookings/manage/'+encodeURIComponent(token));
-   if(managed.booking?.confirmationEmailStatus==='sent'){sent=true;break;}
-   if(managed.booking?.confirmationEmailStatus==='failed')throw new Error('Worker email delivery entered failed state');
+ if(!skipEmail){
+  for(let attempt=0;attempt<24;attempt++){
+   if(session){
+    delivery=await session.mailStatus(reference);
+    if(delivery.state==='sent'){sent=true;break;}
+    if(delivery.state==='failed'||['E_SENDER_NOT_VERIFIED','E_SENDER_DOMAIN_NOT_AVAILABLE','E_RECIPIENT_NOT_ALLOWED','E_VALIDATION_ERROR','E_FIELD_MISSING'].includes(delivery.code))throw new Error('Native email delivery blocked: '+delivery.code);
+   }else{
+    const managed=await request('/api/bookings/manage/'+encodeURIComponent(token));
+    if(managed.booking?.confirmationEmailStatus==='sent'){sent=true;break;}
+    if(managed.booking?.confirmationEmailStatus==='failed')throw new Error('Worker email delivery entered failed state');
+   }
+   await sleep(8000);
   }
-  await sleep(8000);
+  if(!sent)throw new Error('Worker email delivery did not reach provider-accepted state');
+  const managed=await request('/api/bookings/manage/'+encodeURIComponent(token));
+  if(managed.booking?.confirmationEmailStatus!=='sent')throw new Error('Provider acceptance was not reflected in the booking API');
  }
- if(!sent)throw new Error('Worker email delivery did not reach provider-accepted state');
- const managed=await request('/api/bookings/manage/'+encodeURIComponent(token));
- if(managed.booking?.confirmationEmailStatus!=='sent')throw new Error('Provider acceptance was not reflected in the booking API');
  const cancelled=await request('/api/bookings/manage/'+encodeURIComponent(token)+'/cancel',{method:'POST'});
  if(cancelled.booking?.status!=='cancelled')throw new Error('Controlled booking cancellation failed');
  const final=await request('/api/bookings/manage/'+encodeURIComponent(token));
  if(final.booking?.status!=='cancelled')throw new Error('Controlled booking cancellation did not persist');
  cleanupStatus='cancelled';
- console.log(JSON.stringify({status:'passed',base,bookingReference:reference,authentication,emailProviderAccepted:true,inboxDeliveryVerified:false,publicTurnstileVerified:authentication==='public-turnstile',calendarInvitationVerified:true,finalStatus:'cancelled'},null,2));
+ console.log(JSON.stringify({status:'passed',base,bookingReference:reference,authentication,emailProviderAccepted:skipEmail?false:true,emailDeferred:skipEmail,inboxDeliveryVerified:false,publicTurnstileVerified:authentication==='public-turnstile',calendarInvitationVerified:true,finalStatus:'cancelled'},null,2));
 }catch(error){
  if(token){try{await request('/api/bookings/manage/'+encodeURIComponent(token)+'/cancel',{method:'POST'});cleanupStatus='cancelled';}catch{cleanupStatus='failed-needs-review';}}
  console.error(JSON.stringify({status:'failed',bookingReference:reference||null,cleanupStatus,delivery,error:error instanceof Error?error.message:String(error)},null,2));process.exitCode=1;

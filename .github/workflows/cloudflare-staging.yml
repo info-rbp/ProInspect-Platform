@@ -79,6 +79,7 @@ jobs:
       RELEASE_SHA: ${{ needs.validate.outputs.source }}
       STAGING_INSTANCE_ID: ${{ github.run_id }}-${{ github.run_attempt }}
       STAGING_EMAIL_RECIPIENT: info@proinspect.systems
+      CLOUDFLARE_DEFER_TRANSACTIONAL_EMAIL: '1'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       GCP_PROJECT_ID: business-plan-applicatio-17047
@@ -192,6 +193,7 @@ jobs:
           CLOUDFLARE_SMOKE_URL="$STAGING_URL" CLOUDFLARE_EXPECT_MODE=live node scripts/cloudflare/remote-smoke.mjs
 
       - name: Verify transactional email through deployed Worker
+        if: env.CLOUDFLARE_DEFER_TRANSACTIONAL_EMAIL != '1'
         env:
           CLOUDFLARE_SMOKE_EMAIL: info@proinspect.systems
         run: |
@@ -205,7 +207,7 @@ jobs:
           const resources=JSON.parse(fs.readFileSync('.cloudflare/staging-resources.json'));
           const plan=JSON.parse(fs.readFileSync('private-migration/d1-import-plan.json'));
           const storage=JSON.parse(fs.readFileSync('private-migration/storage-migration.json'));
-          const evidence={schemaVersion:1,sourceSha:process.env.SOURCE_SHA,workerName:resources.workerName,appUrl:resources.appUrl,databaseName:resources.database.name,migrationDigest:plan.digest,counts:plan.counts,storageObjects:storage.objects.length,storageBytes:storage.bytes,completedAt:new Date().toISOString()};
+          const evidence={schemaVersion:1,sourceSha:process.env.SOURCE_SHA,workerName:resources.workerName,appUrl:resources.appUrl,databaseName:resources.database.name,migrationDigest:plan.digest,counts:plan.counts,storageObjects:storage.objects.length,storageBytes:storage.bytes,deferred:{transactionalEmail:process.env.CLOUDFLARE_DEFER_TRANSACTIONAL_EMAIL==='1'},completedAt:new Date().toISOString()};
           fs.writeFileSync('.cloudflare/staging-rehearsal-evidence.json',JSON.stringify(evidence,null,2)+'\n');
           console.log(JSON.stringify(evidence,null,2));
           NODE
@@ -222,7 +224,7 @@ jobs:
       - name: Mark source staging rehearsal successful
         if: success()
         run: |
-          curl -fsS -X POST             -H "Authorization: Bearer $GH_TOKEN"             -H "Accept: application/vnd.github+json"             "https://api.github.com/repos/$REPO/statuses/$SOURCE_SHA"             --data '{"state":"success","context":"cloudflare/staging-rehearsal","description":"Isolated Cloudflare staging migration rehearsal passed"}'             >/dev/null
+          curl -fsS -X POST             -H "Authorization: Bearer $GH_TOKEN"             -H "Accept: application/vnd.github+json"             "https://api.github.com/repos/$REPO/statuses/$SOURCE_SHA"             --data '{"state":"success","context":"cloudflare/staging-rehearsal","description":"Staging migration rehearsal passed; transactional email deferred"}'             >/dev/null
 
       - name: Mark source staging rehearsal failed
         if: failure()

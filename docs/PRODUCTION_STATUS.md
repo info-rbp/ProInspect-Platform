@@ -23,6 +23,10 @@ This file is the authoritative concise status for the Cloudflare end state. Olde
 - Google Sheets / Apps Script integration outbox and idempotent event projection.
 - website navigation contract for direct booking and portal login.
 
+## Current finalisation control sequence
+
+The merged end-state source passed permanent Cloudflare CI. A bootstrap attempt was correctly blocked because the exact source had not yet received the required isolated staging-rehearsal status. The controlled order remains: exact-source verification -> staging rehearsal -> production readiness -> protected bootstrap -> final migration -> pre-traffic acceptance -> domain cutover -> live acceptance -> close.
+
 ## Still requires observed operational evidence
 
 The following must not be marked complete merely from source code:

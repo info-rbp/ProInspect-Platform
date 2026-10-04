@@ -42,7 +42,7 @@ jobs:
             if(!r.ok||j.success===false)throw new Error(JSON.stringify(j.errors||[]));
             return j.result?.[0]?.results||[];
           }
-          const tables=['bookings','properties','clients','tenancies','workOrders','auditEvents','systemMetadata'];
+          const tables=['adminUsers','auditEvents','bookingAccessSecrets','bookings','clientApprovals','clientMemberships','clientPropertyLinks','clientRequests','clientUsers','clients','communications','contractors','documentProducts','documentRequestSecrets','documentRequests','formDefinitions','nativeCalendarEvents','payments','portalNotifications','properties','propertyDocuments','scheduleLocks','sensitiveAuditEvents','sensitiveTenantForms','services','settings','subscriptions','systemMetadata','tenancies','tenantFormRequests','tenantInspections','tenantRequests','tenantUsers','workOrders'];
           const counts={};
           for(const t of tables){
             const rows=await query('SELECT COUNT(*) AS n FROM "'+t+'"');

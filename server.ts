@@ -2913,7 +2913,7 @@ app.post('/api/tenant/requests', tenantWriteRateLimit, requireTenant, async (req
       entityId:request.id,
       propertyId:request.propertyId,
       tenancyId:request.tenancyId,
-      payload:{ reference:request.reference, type:request.type, title:request.title, priority:request.priority, status:request.status, submittedBy:tenant.email },
+      payload:{ reference:request.reference, type:request.requestType, title:request.title, priority:request.priority, status:request.status, submittedBy:tenant.email },
     });
     await writeAuditEvent({
       entityType: 'tenant_request',

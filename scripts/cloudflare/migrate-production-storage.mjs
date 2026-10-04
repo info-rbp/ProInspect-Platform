@@ -7,7 +7,7 @@ import path from 'node:path';
 const [exportPath='private-migration/canonical-export.json',resourcesPath='.cloudflare/production-resources.json']=process.argv.slice(2);
 const snapshot=JSON.parse(readFileSync(exportPath,'utf8'));
 const resources=JSON.parse(readFileSync(resourcesPath,'utf8'));
-const sourceBucket=process.env.GCP_FIREBASE_STORAGE_BUCKET||'business-plan-applicatio-17047.firebasestorage.app';
+const sourceBucket=process.env.GCP_FIREBASE_STORAGE_BUCKET||'proinspect-client-docs-696236368989-production';
 const impersonate=(process.env.GCP_STORAGE_IMPERSONATE_SERVICE_ACCOUNT||'').trim();
 const gcloudArgs=(args)=>impersonate?[...args,'--impersonate-service-account='+impersonate]:args;
 if(!snapshot?.collections||!resources?.documentsBucket||!resources?.sensitiveBucket)throw new Error('Canonical export and isolated resource descriptor are required');

@@ -7,6 +7,7 @@ const adapters=new Map([
  ['src/server/firebaseAdmin.ts','src/cloudflare/platform.ts'],
  ['src/server/calendar.ts','src/cloudflare/calendar.ts'],
  ['src/server/addressValidation.ts','src/cloudflare/address.ts'],
+ ['src/server/integrationEvents.ts','src/cloudflare/integrationEvents.ts'],
 ]);
 const contract={sourceRoutes:0,bundledRoutes:0,adapters:Object.fromEntries(adapters)};
 const plugin={name:'reviewed-platform-boundaries',setup(b){

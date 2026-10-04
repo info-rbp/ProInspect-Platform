@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "action": "readiness",
+  "action": "bootstrap",
   "sourceSha": "a82a5f09a4f3be4f445016318294d13fee60510f",
-  "approve": "",
-  "note": "Exact-source production readiness on protected main before bootstrap. Transactional email acceptance remains explicitly deferred."
+  "approve": "PROVISION:a82a5f09a4f3be4f445016318294d13fee60510f",
+  "note": "Protected-main production bootstrap after successful readiness. Production remains in maintenance mode. Transactional email acceptance is deferred."
 }

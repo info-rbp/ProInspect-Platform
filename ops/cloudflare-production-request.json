@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "action": "readiness",
+  "action": "bootstrap",
   "sourceSha": "fd790c7ea94db7373c16c57d30f99fd78a7a8ad9",
-  "approve": "",
-  "note": "Read-only readiness for the verified end-state Cloudflare source after merging the integration outbox, current Report Tool contract and website navigation. Do not change traffic or acceptance state."
+  "approve": "PROVISION:fd790c7ea94db7373c16c57d30f99fd78a7a8ad9",
+  "note": "Protected bootstrap for the exact verified end-state source. Apply reviewed D1 migrations including integration_outbox, preserve rollback resources, transfer existing cryptographic/report secrets, and deploy the full Worker in maintenance mode. Do not cut the custom domain in this phase."
 }

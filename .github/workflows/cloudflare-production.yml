@@ -126,7 +126,7 @@ jobs:
       GCP_PROJECT_ID: business-plan-applicatio-17047
       GCP_MIGRATION_SA: proinspect-prod-migration@business-plan-applicatio-17047.iam.gserviceaccount.com
       GCP_RUNTIME_SA: proinspect-booking-runtime@business-plan-applicatio-17047.iam.gserviceaccount.com
-      GCP_FIREBASE_STORAGE_BUCKET: business-plan-applicatio-17047.firebasestorage.app
+      GCP_FIREBASE_STORAGE_BUCKET: proinspect-client-docs-696236368989-production
       GOOGLE_CALENDAR_ID: c_4bf5fc54ee54bf60371059cf824ec7e018fb6c43ca66bbdd4051fafaa74e3c32@group.calendar.google.com
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
@@ -225,6 +225,27 @@ jobs:
         if: needs.request.outputs.action == 'bootstrap'
         run: |
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$REPO/statuses/$SOURCE_SHA" --data '{"state":"success","context":"cloudflare/production-bootstrap","description":"Production Cloudflare resources and maintenance Worker verified"}' >/dev/null
+      - name: Verify legacy Storage source before writer freeze
+        if: needs.request.outputs.action == 'migrate'
+        run: |
+          set -euo pipefail
+          SOURCE_BUCKET_URI="gs://$GCP_FIREBASE_STORAGE_BUCKET"
+          EXPECTED_BUCKET="proinspect-client-docs-696236368989-production"
+          [ "$GCP_FIREBASE_STORAGE_BUCKET" = "$EXPECTED_BUCKET" ] || {
+            echo "Legacy Storage source does not match the reviewed production runtime bucket." >&2
+            exit 1
+          }
+          ACTUAL_BUCKET="$(gcloud storage buckets describe "$SOURCE_BUCKET_URI" --project="$GCP_PROJECT_ID" --format='value(name)')"
+          [ "$ACTUAL_BUCKET" = "$GCP_FIREBASE_STORAGE_BUCKET" ] || {
+            echo "Reviewed production Storage source bucket was not found." >&2
+            exit 1
+          }
+          gcloud storage buckets add-iam-policy-binding "$SOURCE_BUCKET_URI" \
+            --member="serviceAccount:$GCP_MIGRATION_SA" \
+            --role=roles/storage.objectViewer >/dev/null
+          gcloud storage ls "$SOURCE_BUCKET_URI" \
+            --impersonate-service-account="$GCP_MIGRATION_SA" >/tmp/legacy-storage-root-list.txt
+          echo "Legacy Storage source verified before writer freeze."
       - name: Freeze legacy Cloud Run public writer
         if: needs.request.outputs.action == 'migrate'
         run: |

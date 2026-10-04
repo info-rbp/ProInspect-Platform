@@ -21,8 +21,15 @@ for(let attempt=0;attempt<30;attempt++){
 }
 assert.ok(health,'The exact expected Worker source and mode did not become available');
 if(mode==='maintenance'){
- await req('/api/services',503);
- await req('/book',503);
+ let maintenanceReady=false;
+ for(let attempt=0;attempt<30;attempt++){
+  try{
+   await req('/api/services?release='+source,503);
+   await req('/book?release='+source,503,{headers:{'Sec-Fetch-Mode':'navigate'}});
+   maintenanceReady=true;break;
+  }catch(error){if(attempt===29)throw error;await new Promise(resolve=>setTimeout(resolve,2000));}
+ }
+ assert.ok(maintenanceReady,'Maintenance responses did not converge on the exact Worker deployment');
 }else{
  const services=await (await req('/api/services',200)).json();assert.ok(Array.isArray(services.services)&&services.services.length>0);
  const config=await (await req('/api/platform/config',200)).json();assert.equal(config.platform,'cloudflare');assert.equal(config.calendarProvider,'ProInspect');

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "action": "bootstrap",
+  "action": "readiness",
   "sourceSha": "a82a5f09a4f3be4f445016318294d13fee60510f",
-  "approve": "PROVISION:a82a5f09a4f3be4f445016318294d13fee60510f",
-  "note": "Protected production bootstrap. This request is intended to execute from main because the GitHub production environment rejects release-branch deployments. Transactional email acceptance remains deferred."
+  "approve": "",
+  "note": "Exact-source production readiness on protected main before bootstrap. Transactional email acceptance remains explicitly deferred."
 }

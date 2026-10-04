@@ -8,6 +8,7 @@ export interface Bindings {
  ACCESS_DATA_ENCRYPTION_KEY:string; ACCESS_DATA_ENCRYPTION_KEY_ID:string; ENCRYPTION_KEYS_JSON?:string;
  FILE_SIGNING_KEY:string; BOOKING_EMAIL_FROM:string; BOOKING_EMAIL_REPLY_TO?:string; STAGING_EMAIL_RECIPIENT?:string;
  REPORT_INGEST_TOKEN:string; REPORT_HANDOFF_SIGNING_KEY:string; PAYMENT_WEBHOOK_TOKEN?:string; RELEASE_SHA:string;
+ APPS_SCRIPT_WEBHOOK_URL?:string; APPS_SCRIPT_WEBHOOK_TOKEN?:string;
  [key:string]:any;
 }
 export interface RequestContext {env:Bindings;request:Request;identity?:Identity;waitUntil:(p:Promise<unknown>)=>void}

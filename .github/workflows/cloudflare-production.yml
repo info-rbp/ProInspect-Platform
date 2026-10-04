@@ -243,9 +243,19 @@ jobs:
           gcloud storage buckets add-iam-policy-binding "$SOURCE_BUCKET_URI" \
             --member="serviceAccount:$GCP_MIGRATION_SA" \
             --role=roles/storage.objectViewer >/dev/null
+          gcloud storage buckets add-iam-policy-binding "$SOURCE_BUCKET_URI" \
+            --member="serviceAccount:$GCP_MIGRATION_SA" \
+            --role=roles/storage.bucketViewer >/dev/null
+          MIGRATION_BUCKET="$(gcloud storage buckets describe "$SOURCE_BUCKET_URI" \
+            --impersonate-service-account="$GCP_MIGRATION_SA" \
+            --format='value(name)')"
+          [ "$MIGRATION_BUCKET" = "$GCP_FIREBASE_STORAGE_BUCKET" ] || {
+            echo "Migration identity cannot resolve the reviewed production Storage bucket." >&2
+            exit 1
+          }
           gcloud storage ls "$SOURCE_BUCKET_URI" \
             --impersonate-service-account="$GCP_MIGRATION_SA" >/tmp/legacy-storage-root-list.txt
-          echo "Legacy Storage source verified before writer freeze."
+          echo "Legacy Storage source and bucket metadata access verified before writer freeze."
       - name: Freeze legacy Cloud Run public writer
         if: needs.request.outputs.action == 'migrate'
         run: |

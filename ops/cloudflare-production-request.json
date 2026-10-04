@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "action": "bootstrap",
+  "action": "migrate",
   "sourceSha": "be502b205edbdb7077eb6abc12639dbc477edc96",
-  "approve": "PROVISION:be502b205edbdb7077eb6abc12639dbc477edc96",
-  "note": "Idempotent protected production bootstrap for the Firestore backup-location corrected source. Verification, staging rehearsal and production readiness have passed. Transactional email remains explicitly deferred."
+  "approve": "CUTOVER:be502b205edbdb7077eb6abc12639dbc477edc96",
+  "note": "Final production migration for the exact source with Firestore-compatible asia-southeast1 export backup. Freeze legacy writer, capture D1 rollback bookmarks, take final Firestore and Storage backups, migrate and reconcile D1/R2/calendar data. Transactional email remains explicitly deferred."
 }

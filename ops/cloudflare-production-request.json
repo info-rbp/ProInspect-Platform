@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "action": "bootstrap",
+  "action": "migrate",
   "sourceSha": "d37fa26ee2747a5018d36e9f4b440dfa6ae207a0",
-  "approve": "PROVISION:d37fa26ee2747a5018d36e9f4b440dfa6ae207a0",
-  "note": "Idempotent protected production bootstrap for the Storage bucket-metadata permission correction. Verification, staging rehearsal and production readiness have passed. Transactional email remains explicitly deferred."
+  "approve": "CUTOVER:d37fa26ee2747a5018d36e9f4b440dfa6ae207a0",
+  "note": "Final production migration for the verified source with Firestore-compatible export backup, actual production document bucket, and validated migration bucket-metadata permission. Freeze legacy writer only after source-bucket preflight, capture D1 rollback bookmarks, take final Firestore and Storage backups, migrate and reconcile D1/R2/calendar data. Transactional email remains explicitly deferred."
 }

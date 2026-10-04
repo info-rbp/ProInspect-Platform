@@ -211,6 +211,7 @@ import {
   listDocumentRequestsForClient,
   updateDocumentRequest,
 } from './src/server/documentStore.js';
+import { emitIntegrationEvent } from './src/server/integrationEvents.js';
 import {
   addSensitiveTenantEvidence,
   addTenantFormAttachment,
@@ -1728,6 +1729,13 @@ app.post('/api/integrations/reports', reportFileBody, async (req, res) => {
         ...(reportSourceId ? { reportSourceId } : {}),
       },
     });
+    await emitIntegrationEvent({
+      eventType:'report.issued',
+      entityId:document.id,
+      propertyId,
+      tenancyId,
+      payload:{ title:document.title, category:document.category, fileName:document.fileName, bookingId, workOrderId, requestId, reportSourceId },
+    });
 
     return res.status(201).json({ success:true, document });
   } catch (error) {
@@ -2097,6 +2105,14 @@ app.post('/api/document-requests', documentRequestRateLimit, async (req, res) =>
       updatedAt: canonical.updatedAt,
     };
 
+    await emitIntegrationEvent({
+      eventType:'document_request.created',
+      entityId:canonical.id,
+      propertyId:canonical.propertyId,
+      clientId:canonical.clientId,
+      payload:{ reference:canonical.reference, documentProductId:canonical.documentProductId, documentName:canonical.documentName, documentCategory:canonical.documentCategory, requesterName:canonical.requesterName, requesterEmail:canonical.requesterEmail, status:canonical.status },
+    });
+
     const emailResult = await sendDocumentRequestEmails(emailRequest);
     if (emailResult.customer.status === 'failed') {
       console.error(
@@ -2428,6 +2444,13 @@ app.post('/api/bookings/create', bookingRateLimit, async (req, res) => {
           displayName: booking.property.customerName,
         },
         metadata: { status: booking.status },
+      });
+      await emitIntegrationEvent({
+        eventType:'booking.created',
+        entityId:booking.id,
+        propertyId:booking.propertyId,
+        clientId:booking.clientId,
+        payload:{ bookingReference:booking.bookingReference, serviceId:booking.serviceId, serviceName:booking.serviceName, serviceCategory:booking.serviceCategory, status:booking.status, appointment:booking.appointment, customerName:booking.property.customerName, customerEmail:booking.property.customerEmail },
       });
     } catch (firestoreError) {
       await deleteEvent(calendarEventId, resolvedCalendarId).catch((rollbackError) => {
@@ -2885,6 +2908,13 @@ app.post('/api/tenant/requests', tenantWriteRateLimit, requireTenant, async (req
     }
 
     const request = await createTenantRequest(tenant, parsed.request);
+    await emitIntegrationEvent({
+      eventType:'tenant_request.created',
+      entityId:request.id,
+      propertyId:request.propertyId,
+      tenancyId:request.tenancyId,
+      payload:{ reference:request.reference, type:request.type, title:request.title, priority:request.priority, status:request.status, submittedBy:tenant.email },
+    });
     await writeAuditEvent({
       entityType: 'tenant_request',
       entityId: request.id,
@@ -3333,6 +3363,13 @@ app.post('/api/client/requests', clientRateLimit, requireClient, async (req, res
       details,
       priority: ['routine','priority','urgent'].includes(priority) ? priority : 'routine',
       payload: req.body?.payload && typeof req.body.payload === 'object' ? req.body.payload : {},
+    });
+    await emitIntegrationEvent({
+      eventType:'client_request.created',
+      entityId:request.id,
+      propertyId:request.propertyId,
+      clientId:request.clientId,
+      payload:{ reference:request.reference, type:request.type, title:request.title, priority:request.priority, status:request.status, submittedBy:user.email },
     });
     return res.status(201).json({ success: true, request });
   } catch (error) {
@@ -3902,6 +3939,14 @@ app.post('/api/admin/work-orders', requireAdmin, requireAdminWritePermission('op
       accessNotes: normalizeText(req.body?.accessNotes,2000) || undefined,
       createdBy: res.locals.admin.email,
     });
+    await emitIntegrationEvent({
+      eventType:'work_order.created',
+      entityId:workOrder.id,
+      propertyId:workOrder.propertyId,
+      clientId:workOrder.clientId,
+      tenancyId:workOrder.tenancyId,
+      payload:{ reference:workOrder.reference, sourceType:workOrder.sourceType, sourceId:workOrder.sourceId, title:workOrder.title, priority:workOrder.priority, status:workOrder.status },
+    });
     return res.status(201).json({ success:true, workOrder });
   } catch (error) {
     if (error instanceof Error && error.message === 'PROPERTY_NOT_FOUND') {
@@ -3928,6 +3973,14 @@ app.patch('/api/admin/work-orders/:id', requireAdmin, requireAdminWritePermissio
       completionDocumentIds: Array.isArray(req.body?.completionDocumentIds) ? req.body.completionDocumentIds.filter((x:unknown):x is string => typeof x === 'string') : undefined,
     }, { type:'staff', id:res.locals.admin.uid, email:res.locals.admin.email });
     if (!workOrder) return res.status(404).json({ error:'Work order not found.' });
+    await emitIntegrationEvent({
+      eventType:'work_order.updated',
+      entityId:workOrder.id,
+      propertyId:workOrder.propertyId,
+      clientId:workOrder.clientId,
+      tenancyId:workOrder.tenancyId,
+      payload:{ reference:workOrder.reference, title:workOrder.title, priority:workOrder.priority, status:workOrder.status, contractorId:workOrder.contractorId, scheduledStart:workOrder.scheduledStart, scheduledEnd:workOrder.scheduledEnd },
+    });
     return res.json({ success:true, workOrder });
   } catch (error) {
     console.error('Work order update failed:', error);

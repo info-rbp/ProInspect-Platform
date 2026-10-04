@@ -89,6 +89,8 @@ jobs:
       GOOGLE_CALENDAR_ID: c_4bf5fc54ee54bf60371059cf824ec7e018fb6c43ca66bbdd4051fafaa74e3c32@group.calendar.google.com
       REPO: ${{ github.repository }}
       GH_TOKEN: ${{ github.token }}
+      APPS_SCRIPT_WEBHOOK_URL: ${{ vars.APPS_SCRIPT_STAGING_WEBHOOK_URL }}
+      APPS_SCRIPT_WEBHOOK_TOKEN: ${{ secrets.APPS_SCRIPT_STAGING_WEBHOOK_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -182,6 +184,7 @@ jobs:
           printf '%s' "$REPORT_TOKEN" | npx --yes wrangler@4.147.0 secret put REPORT_INGEST_TOKEN --config .cloudflare/wrangler.staging.json
           printf '%s' "$PAYMENT_TOKEN" | npx --yes wrangler@4.147.0 secret put PAYMENT_WEBHOOK_TOKEN --config .cloudflare/wrangler.staging.json
           printf '%s' "$TURNSTILE_SECRET" | npx --yes wrangler@4.147.0 secret put TURNSTILE_SECRET_KEY --config .cloudflare/wrangler.staging.json
+          if [ -n "${APPS_SCRIPT_WEBHOOK_TOKEN:-}" ]; then printf '%s' "$APPS_SCRIPT_WEBHOOK_TOKEN" | npx --yes wrangler@4.147.0 secret put APPS_SCRIPT_WEBHOOK_TOKEN --config .cloudflare/wrangler.staging.json; fi
           printf 'REPORT_INGEST_TOKEN=%s\nPAYMENT_WEBHOOK_TOKEN=%s\n' "$REPORT_TOKEN" "$PAYMENT_TOKEN" > /tmp/staging-integration-secrets.env
           unset LEGACY_KEY ACTIVE_KEY KEYRING FILE_KEY REPORT_SIGNING REPORT_TOKEN PAYMENT_TOKEN TURNSTILE_SECRET
 

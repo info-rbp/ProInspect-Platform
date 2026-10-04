@@ -4,6 +4,7 @@ import {DocumentDatabase} from '../../src/cloudflare/database.ts';
 export function fixture(){
  const sqlite=new DatabaseSync(':memory:');
  sqlite.exec(readFileSync(new URL('../../migrations/cloudflare/0001_platform.sql',import.meta.url),'utf8'));
+ sqlite.exec(readFileSync(new URL('../../migrations/cloudflare/0002_integration_outbox.sql',import.meta.url),'utf8'));
  const binding={
   prepare(sql){
    const statement=sqlite.prepare(sql);let args=[];

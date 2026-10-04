@@ -130,6 +130,8 @@ jobs:
       GOOGLE_CALENDAR_ID: c_4bf5fc54ee54bf60371059cf824ec7e018fb6c43ca66bbdd4051fafaa74e3c32@group.calendar.google.com
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
+      APPS_SCRIPT_WEBHOOK_URL: ${{ vars.APPS_SCRIPT_PRODUCTION_WEBHOOK_URL }}
+      APPS_SCRIPT_WEBHOOK_TOKEN: ${{ secrets.APPS_SCRIPT_PRODUCTION_WEBHOOK_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -211,6 +213,7 @@ jobs:
           printf '%s' "$REPORT_KEY" | npx --yes wrangler@4.147.0 secret put REPORT_HANDOFF_SIGNING_KEY --config .cloudflare/wrangler.production.json
           printf '%s' "$REPORT_TOKEN" | npx --yes wrangler@4.147.0 secret put REPORT_INGEST_TOKEN --config .cloudflare/wrangler.production.json
           printf '%s' "$TURNSTILE_SECRET" | npx --yes wrangler@4.147.0 secret put TURNSTILE_SECRET_KEY --config .cloudflare/wrangler.production.json
+          if [ -n "${APPS_SCRIPT_WEBHOOK_TOKEN:-}" ]; then printf '%s' "$APPS_SCRIPT_WEBHOOK_TOKEN" | npx --yes wrangler@4.147.0 secret put APPS_SCRIPT_WEBHOOK_TOKEN --config .cloudflare/wrangler.production.json; fi
           unset ACCESS_KEY REPORT_KEY REPORT_TOKEN RELEASE_TOKEN TURNSTILE_SECRET ENCRYPTION_KEYS_JSON FILE_SIGNING_KEY
       - name: Deploy full Worker in maintenance mode
         if: needs.request.outputs.action == 'bootstrap' || needs.request.outputs.action == 'migrate'

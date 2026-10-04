@@ -2,7 +2,7 @@
 
 ProInspect is a four-surface property-services platform for Public, Client, Tenant and Staff users.
 
-The active completion branch is `release/cloudflare-platform`. The target production runtime is Cloudflare Workers. The former Google Cloud/Firebase deployment is retained only as a migration and rollback source until the Cloudflare release has passed production acceptance.
+`main` is the Cloudflare platform source of truth. Final end-state changes are accepted through normal pull-request verification. The former Google Cloud/Firebase deployment is retained only as migration and rollback evidence until Cloudflare production acceptance and the rollback period are closed.
 
 ## V1 runtime architecture
 
@@ -12,7 +12,7 @@ The production build deploys the React/Vite application and API Worker as one un
 - **D1** — canonical application data, authentication/session state, email outbox and migration records.
 - **R2** — ordinary documents and a separate restricted/sensitive evidence bucket.
 - **Durable Objects** — serialization of concurrency-sensitive booking writes.
-- **Queues** — transactional email delivery, retries and dead-letter handling.
+- **Queues** — transactional email and integration-outbox delivery, retries and dead-letter handling.\n- **Google Sheets / Apps Script** — optional idempotent operational projection; D1 remains authoritative.
 - **Cloudflare Email Service** — outbound transactional delivery.
 - **Turnstile** — abuse protection for public sign-in and submission flows.
 - **Cloudflare Access (optional)** — Staff SSO front door. ProInspect RBAC remains authoritative for application authorization.
@@ -45,7 +45,7 @@ No new major product module is added before launch.
 
 ## Completion documentation
 
-- `docs/CLOUDFLARE_V1_CONTRACT.md` — frozen product and runtime contract.
+- `docs/PLATFORM_ARCHITECTURE.md` — authoritative end-state architecture.\n- `docs/PRODUCTION_STATUS.md` — authoritative concise production status.\n- `docs/CLOUDFLARE_V1_CONTRACT.md` — frozen product and runtime contract.
 - `docs/CLOUDFLARE_COMPLETION_AUDIT.md` — status against the approved 50-point completion plan.
 - `docs/CLOUDFLARE_PRODUCTION_RUNBOOK.md` — deployment, migration, backup and rollback procedure.
 - `docs/CLOUDFLARE_ACCEPTANCE_CHECKLIST.md` — staging, pre-traffic, live and closure gates.

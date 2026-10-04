@@ -24,6 +24,20 @@ async function d1Query(sql){
   return blocks.flatMap(block=>Array.isArray(block?.results)?block.results:[]);
 }
 
+async function inspectSigningRoutes(){
+  const zones=await cf('/zones?name=proinspect.systems&account.id='+account+'&per_page=50');
+  if(!Array.isArray(zones)||zones.length!==1)throw new Error('proinspect.systems zone is not uniquely readable.');
+  const zoneId=zones[0].id;
+  const routes=await cf('/zones/'+zoneId+'/workers/routes');
+  const relevant=(Array.isArray(routes)?routes:[]).filter(route=>{
+    const pattern=String(route?.pattern||'');
+    return pattern.includes('proinspect.systems/sign')||pattern.includes('proinspect.systems/api/public')||pattern==='proinspect.systems/*';
+  }).map(route=>({id:route.id||'',pattern:route.pattern||'',script:route.script||''}));
+  console.log('Live relevant Worker routes:');
+  console.log(JSON.stringify({zoneId,relevant},null,2));
+  return {zoneId,relevant};
+}
+
 async function inspectReportToolDatabase(){
   const rows=await d1Query("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
   const names=rows.map(row=>String(row.name||'')).filter(Boolean);
@@ -171,6 +185,7 @@ async function verifyPublicBoundary(){
 }
 
 const reportDb=await inspectReportToolDatabase();
+const signingRoutes=await inspectSigningRoutes();
 const apps=await listApps();
 const protectedSummaries=apps
   .filter(app=>{

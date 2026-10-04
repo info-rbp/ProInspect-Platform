@@ -1,0 +1,43 @@
+name: Report Tool runtime trace
+
+on:
+  push:
+    branches:
+      - release/cloudflare-platform
+    paths:
+      - .github/workflows/report-tool-runtime-trace.yml
+
+permissions:
+  contents: read
+
+jobs:
+  trace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: 8ca23ac6d2cc906d4dd13b8da5ea2b25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Tail one public workflow health request
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f /tmp/report-tool-tail.log /tmp/health.out
+          timeout 35s npx --yes wrangler@4.147.0 tail proinspect-property-report-creation-tool --format json > /tmp/report-tool-tail.log 2>&1 &
+          tail_pid=$!
+          sleep 8
+          curl -sS -D /tmp/health.headers -o /tmp/health.out --max-time 15 https://proinspect.systems/api/public/workflow-health || true
+          echo "=== health headers ==="
+          cat /tmp/health.headers || true
+          echo "=== health body ==="
+          cat /tmp/health.out || true
+          sleep 8
+          kill "$tail_pid" 2>/dev/null || true
+          wait "$tail_pid" 2>/dev/null || true
+          echo
+          echo "=== bounded worker tail ==="
+          tail -n 120 /tmp/report-tool-tail.log

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "action": "promote",
-  "sourceSha": "d37fa26ee2747a5018d36e9f4b440dfa6ae207a0",
-  "approve": "LIVE:d37fa26ee2747a5018d36e9f4b440dfa6ae207a0",
-  "note": "Promote the exact reconciled production source live on workers.dev after successful final backup and D1/R2 migration. Transactional email remains explicitly deferred; non-email production acceptance remains required before custom-domain cutover."
+  "action": "readiness",
+  "sourceSha": "fd790c7ea94db7373c16c57d30f99fd78a7a8ad9",
+  "approve": "",
+  "note": "Read-only readiness for the verified end-state Cloudflare source after merging the integration outbox, current Report Tool contract and website navigation. Do not change traffic or acceptance state."
 }

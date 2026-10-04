@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
   "action": "rehearse",
-  "sourceSha": "4c47aa8c9faf581c6cfd34bfcffcbe220697a1ef",
-  "note": "Rehearse the frozen Cloudflare release after the maintenance edge-convergence correction. Transactional email remains explicitly deferred; migration, rollback, runtime and non-email acceptance gates remain enforced."
+  "sourceSha": "6478143acaa959b401525798291def313b43ea1c",
+  "note": "Rehearse the frozen Cloudflare release with maintenance and live edge convergence safeguards. Transactional email remains explicitly deferred; all non-email migration, runtime and acceptance gates remain enforced."
 }

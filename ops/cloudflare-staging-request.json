@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
   "action": "rehearse",
-  "sourceSha": "9b88c5e59d8c6d899464256a1d6016d2294271d1",
-  "note": "Rehearse the actual production document-bucket source correction and read-only migration preflight. Transactional email remains explicitly deferred; migration, runtime, exact-source and non-email gates remain enforced."
+  "sourceSha": "d37fa26ee2747a5018d36e9f4b440dfa6ae207a0",
+  "note": "Rehearse the production Storage bucket-metadata permission correction. Transactional email remains explicitly deferred; migration, runtime, exact-source and non-email gates remain enforced."
 }

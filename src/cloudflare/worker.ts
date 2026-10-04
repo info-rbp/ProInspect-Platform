@@ -5,6 +5,7 @@ import { authRoute, checkRate, sameOrigin, sessionIdentity, verifyAccess, verify
 import { constantEqual } from './crypto.ts';
 import { downloadFile } from './storage.ts';
 import { deliverMail, retryMail } from './mail.ts';
+import { deliverIntegrationEvent, retryIntegrationEvents } from './integrationEvents.ts';
 import { calendarInvitation } from './calendar.ts';
 import { adminDb } from './platform.ts';
 
@@ -97,9 +98,10 @@ export default {
   }
   return dispatch(request,env,ctx);
  },
- async queue(batch:any,env:Bindings){for(const m of batch.messages){try{await deliverMail(env,m.body.id);m.ack();}catch{m.retry({delaySeconds:60});}}},
+ async queue(batch:any,env:Bindings){for(const m of batch.messages){try{if(m.body?.kind==='integration')await deliverIntegrationEvent(env,m.body.id);else await deliverMail(env,m.body.id);m.ack();}catch{m.retry({delaySeconds:60});}}},
  async scheduled(_event:any,env:Bindings,ctx:any){ctx.waitUntil((async()=>{
   await retryMail(env);
+  await retryIntegrationEvents(env);
   await env.DB.batch([
    env.DB.prepare('DELETE FROM login_challenges WHERE expires_at<?').bind(Date.now()),
    env.DB.prepare('DELETE FROM auth_sessions WHERE expires_at<?').bind(Date.now()),

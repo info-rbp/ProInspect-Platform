@@ -5,7 +5,7 @@ const mode=process.env.CLOUDFLARE_LAUNCH_MODE||'maintenance';
 const appUrl=(process.env.CLOUDFLARE_APP_URL_OVERRIDE||resources.appUrl).trim();
 const customDomain=(process.env.CLOUDFLARE_CUSTOM_DOMAIN||'').trim();
 const enableCustomDomain=process.env.CLOUDFLARE_ENABLE_CUSTOM_DOMAIN==='1';
-const sha=(process.env.GITHUB_SHA||process.env.RELEASE_SHA||'').trim();
+const sha=(process.env.SOURCE_SHA||process.env.RELEASE_SHA||process.env.GITHUB_SHA||'').trim();
 if(!/^[a-f0-9]{40}$/.test(sha))throw new Error('Exact release SHA is required');
 if(!['maintenance','live'].includes(mode))throw new Error('Launch mode must be maintenance or live');
 if(!/^[a-f0-9]{32}$/i.test(resources.accountId)||!/^[a-f0-9-]{36}$/i.test(resources.database?.id))throw new Error('Provisioned Cloudflare account/D1 identifiers are required');

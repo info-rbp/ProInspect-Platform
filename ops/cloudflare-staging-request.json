@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "action": "rehearse",
-  "sourceSha": "d37fa26ee2747a5018d36e9f4b440dfa6ae207a0",
-  "note": "Rehearse the production Storage bucket-metadata permission correction. Transactional email remains explicitly deferred; migration, runtime, exact-source and non-email gates remain enforced."
+  "sourceSha": "5e0b028b1b5488b5390d661b707574b76edca150",
+  "approve": "REHEARSE:5e0b028b1b5488b5390d661b707574b76edca150",
+  "note": "Isolated staging rehearsal for the exact verified end-state source. Exercise D1 migrations including integration_outbox, migrated relationships, Worker runtime, portals, R2, Report Tool boundary and non-production acceptance without touching production traffic."
 }

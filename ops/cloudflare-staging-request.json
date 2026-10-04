@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
   "action": "rehearse",
-  "sourceSha": "0631d743e44ec38ac989724cf81344f5cf8271fe",
-  "note": "Repeat the verified migration and live staging checks with native email attachment mapping, private provider error diagnostics, and rate-safe mail verification. This request does not alter production data, DNS or acceptance flags."
+  "sourceSha": "a82a5f09a4f3be4f445016318294d13fee60510f",
+  "note": "Final rehearsal for the production controller that deploys through protected main. Transactional email remains explicitly deferred; migration, runtime and non-email gates remain enforced."
 }

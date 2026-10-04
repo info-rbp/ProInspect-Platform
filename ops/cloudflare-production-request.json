@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "action": "readiness",
-  "sourceSha": "0631d743e44ec38ac989724cf81344f5cf8271fe",
-  "approve": "",
-  "note": "Read-only Cloudflare readiness for the frozen candidate under staging rehearsal. Production bootstrap, legacy freeze, data migration and custom-domain cutover are not executed by readiness."
+  "action": "bootstrap",
+  "sourceSha": "a82a5f09a4f3be4f445016318294d13fee60510f",
+  "approve": "PROVISION:a82a5f09a4f3be4f445016318294d13fee60510f",
+  "note": "Protected production bootstrap. This request is intended to execute from main because the GitHub production environment rejects release-branch deployments. Transactional email acceptance remains deferred."
 }

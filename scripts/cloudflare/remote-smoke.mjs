@@ -21,12 +21,26 @@ for(let attempt=0;attempt<30;attempt++){
 }
 assert.ok(health,'The exact expected Worker source and mode did not become available');
 if(mode==='maintenance'){
- await req('/api/services',503);
- await req('/book',503);
+ let maintenanceReady=false;
+ for(let attempt=0;attempt<30;attempt++){
+  try{
+   await req('/api/services?release='+source,503);
+   await req('/book?release='+source,503,{headers:{'Sec-Fetch-Mode':'navigate'}});
+   maintenanceReady=true;break;
+  }catch(error){if(attempt===29)throw error;await new Promise(resolve=>setTimeout(resolve,2000));}
+ }
+ assert.ok(maintenanceReady,'Maintenance responses did not converge on the exact Worker deployment');
 }else{
- const services=await (await req('/api/services',200)).json();assert.ok(Array.isArray(services.services)&&services.services.length>0);
- const config=await (await req('/api/platform/config',200)).json();assert.equal(config.platform,'cloudflare');assert.equal(config.calendarProvider,'ProInspect');
- for(const page of ['/','/book','/client','/tenant','/admin']){const text=await (await req(page,200,{headers:{'Sec-Fetch-Mode':'navigate'}})).text();assert.match(text,/id="root"/);}
- for(const api of ['/api/admin/session','/api/client/session','/api/tenant/session'])await req(api,401);
+ let liveReady=false,lastError;
+ for(let attempt=0;attempt<30;attempt++){
+  try{
+   const services=await (await req('/api/services?release='+source,200)).json();assert.ok(Array.isArray(services.services)&&services.services.length>0);
+   const config=await (await req('/api/platform/config?release='+source,200)).json();assert.equal(config.platform,'cloudflare');assert.equal(config.calendarProvider,'ProInspect');
+   for(const page of ['/','/book','/client','/tenant','/admin']){const text=await (await req(page+'?release='+source,200,{headers:{'Sec-Fetch-Mode':'navigate'}})).text();assert.match(text,/id="root"/);}
+   for(const api of ['/api/admin/session','/api/client/session','/api/tenant/session'])await req(api+'?release='+source,401);
+   liveReady=true;break;
+  }catch(error){lastError=error;if(attempt<29)await new Promise(resolve=>setTimeout(resolve,2000));}
+ }
+ if(!liveReady)throw lastError||new Error('Live responses did not converge on the exact Worker deployment');
 }
 console.log(JSON.stringify({status:'passed',base,mode,release:health.release,exactSourceVerified:true},null,2));

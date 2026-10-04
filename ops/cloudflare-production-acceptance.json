@@ -26,5 +26,9 @@
     "sensitiveForm2": false,
     "observationClear": false
   },
-  "note": "Set only the relevant phase checks to true after the controlled acceptance evidence has actually been observed. Do not pre-approve this receipt."
+  "note": "Accelerated Cloudflare cutover authorized with transactional email explicitly deferred. Only email-specific checks may remain false; all other production acceptance evidence remains required.",
+  "deferred": {
+    "transactionalEmail": true,
+    "reason": "Owner approved deferring transactional email acceptance for this production cutover on 4 October 2026. Email-specific acceptance checks remain false until fixed and verified."
+  }
 }

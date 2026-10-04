@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "action": "migrate",
-  "sourceSha": "d29ef03dca233f71cc237e8d56d139b0231ec770",
-  "approve": "CUTOVER:d29ef03dca233f71cc237e8d56d139b0231ec770",
-  "note": "Final production migration for the exact verified source. Freeze legacy Cloud Run public access, capture rollback bookmarks, take final Firestore and Storage backups, migrate and reconcile D1/R2/calendar data. Transactional email remains explicitly deferred."
+  "action": "readiness",
+  "sourceSha": "be502b205edbdb7077eb6abc12639dbc477edc96",
+  "approve": "",
+  "note": "Read-only production readiness for the Firestore backup-location corrected source. No production resources, data, DNS or traffic are mutated."
 }

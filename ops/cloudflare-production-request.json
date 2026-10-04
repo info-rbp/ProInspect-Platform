@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "action": "readiness",
-  "sourceSha": "0631d743e44ec38ac989724cf81344f5cf8271fe",
+  "sourceSha": "6478143acaa959b401525798291def313b43ea1c",
   "approve": "",
-  "note": "Read-only Cloudflare readiness for the frozen candidate under staging rehearsal. Production bootstrap, legacy freeze, data migration and custom-domain cutover are not executed by readiness."
+  "note": "Read-only production readiness for the owner-approved email-deferred Cloudflare cutover. Transactional email acceptance is deferred; all infrastructure, migration and non-email release gates remain active."
 }

@@ -1,0 +1,68 @@
+name: Report Tool production D1 migrations
+
+on:
+  push:
+    branches:
+      - release/cloudflare-platform
+    paths:
+      - .github/workflows/report-tool-d1-migrate.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: report-tool-production-d1-migrate
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: 8ca23ac6d2cc906d4dd13b8da5ea2b25
+    steps:
+      - name: Check out pinned Report Tool source
+        uses: actions/checkout@v4
+        with:
+          repository: info-rbp/Property-Report-Tool
+          ref: f917c7c8f9dfcc372dbe10ab36666fd454aa0aa6
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify exact Report Tool production database binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q '"database_id": "777186a0-e6ca-43f5-8f50-448bd4454046"' wrangler.jsonc
+          grep -q '"database_name": "proinspect-property-reports"' wrangler.jsonc
+          test -f migrations/0002_workflow_platform.sql
+
+      - name: Apply canonical Report Tool D1 migrations
+        run: npx --yes wrangler@4.147.0 d1 migrations apply DB --remote --config wrangler.jsonc
+
+      - name: Verify workflow tables exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.147.0 d1 execute DB --remote --config wrangler.jsonc --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('report_templates','report_deliveries','signature_requests','signature_parties','signature_fields') ORDER BY name;" > /tmp/tables.txt
+          cat /tmp/tables.txt
+          for t in report_templates report_deliveries signature_requests signature_parties signature_fields; do
+            grep -q "$t" /tmp/tables.txt || { echo "Missing required workflow table: $t" >&2; exit 1; }
+          done
+
+      - name: Verify public signing health and protected editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          health="$(curl -fsS --max-time 20 https://signing.proinspect.systems/api/public/workflow-health)"
+          echo "$health"
+          printf '%s' "$health" | grep -q '"status":"ok"'
+          printf '%s' "$health" | grep -q '"workflowSchema":"ready"'
+          printf '%s' "$health" | grep -q '"proinspectHandoffConfigured":true'
+          printf '%s' "$health" | grep -q '"proinspectIngestConfigured":true'
+          code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://report.creation.proinspect.systems/api/public/workflow-health || true)"
+          case "$code" in 301|302|303|307|308|401|403) ;; *) echo "Staff/editor hostname unexpectedly public: HTTP $code" >&2; exit 1;; esac

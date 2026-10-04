@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "action": "bootstrap",
+  "action": "migrate",
   "sourceSha": "5e0b028b1b5488b5390d661b707574b76edca150",
-  "approve": "PROVISION:5e0b028b1b5488b5390d661b707574b76edca150",
-  "note": "Protected production bootstrap for the exact verified and staging-rehearsed end-state source. Provision/discover production Cloudflare resources, apply reviewed D1 migrations, transfer existing cryptographic/report secrets, and verify the full Worker in maintenance mode. Do not cut custom-domain traffic in this phase."
+  "approve": "CUTOVER:5e0b028b1b5488b5390d661b707574b76edca150",
+  "note": "Final production migration for the exact verified/bootstrap-complete source. Freeze the legacy Cloud Run public writer, capture rollback bookmarks and final backups, export the frozen Firestore/calendar source, reconcile production D1 and R2, verify the maintenance Worker, and restore legacy public invocation automatically if migration fails after the writer freeze."
 }

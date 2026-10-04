@@ -25,7 +25,7 @@ function configured(env: Bindings){
   return Boolean(endpoint(env)&&String(env.APPS_SCRIPT_WEBHOOK_TOKEN||'').trim());
 }
 export async function emitIntegrationEvent(input: IntegrationEventInput): Promise<string | undefined> {
-  const {env}=context();
+  const {env,waitUntil}=context();
   const eventId='evt_'+randomUUID().replace(/-/g,'');
   const occurredAt=new Date().toISOString();
   const event:StoredEvent={eventId,eventType:input.eventType,entityId:input.entityId,occurredAt,payload:input.payload};
@@ -34,11 +34,19 @@ export async function emitIntegrationEvent(input: IntegrationEventInput): Promis
   if(input.tenancyId)event.tenancyId=input.tenancyId;
   const bytes=Buffer.from(JSON.stringify(event));
   if(bytes.length>64*1024)throw new Error('INTEGRATION_EVENT_TOO_LARGE');
-  const encrypted=seal(env,bytes,'integration:'+eventId).toString('base64');
-  const now=Date.now();
-  await env.DB.prepare('INSERT INTO integration_outbox(event_id,event_type,entity_id,encrypted_payload,state,attempts,created_at,updated_at) VALUES(?,?,?,?,\'pending\',0,?,?)')
-    .bind(eventId,input.eventType,input.entityId,encrypted,now,now).run();
-  if(configured(env))await env.JOBS.send({kind:'integration',id:eventId});
+
+  const persist=(async()=>{
+    try{
+      const encrypted=seal(env,bytes,'integration:'+eventId).toString('base64');
+      const now=Date.now();
+      await env.DB.prepare('INSERT INTO integration_outbox(event_id,event_type,entity_id,encrypted_payload,state,attempts,created_at,updated_at) VALUES(?,?,?,?,\'pending\',0,?,?)')
+        .bind(eventId,input.eventType,input.entityId,encrypted,now,now).run();
+      if(configured(env))await env.JOBS.send({kind:'integration',id:eventId});
+    }catch(error){
+      console.error('INTEGRATION_OUTBOX_PERSIST_FAILED',{eventType:input.eventType,entityId:input.entityId,error:error instanceof Error?error.message:'unknown'});
+    }
+  })();
+  waitUntil(persist);
   return eventId;
 }
 export async function deliverIntegrationEvent(env:Bindings,eventId:string):Promise<void>{

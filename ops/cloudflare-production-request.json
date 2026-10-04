@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "action": "bootstrap",
+  "action": "migrate",
   "sourceSha": "d29ef03dca233f71cc237e8d56d139b0231ec770",
-  "approve": "PROVISION:d29ef03dca233f71cc237e8d56d139b0231ec770",
-  "note": "Protected production bootstrap for the exact source that fixes Worker release stamping. Verification, staging rehearsal and production readiness have passed. Transactional email remains explicitly deferred."
+  "approve": "CUTOVER:d29ef03dca233f71cc237e8d56d139b0231ec770",
+  "note": "Final production migration for the exact verified source. Freeze legacy Cloud Run public access, capture rollback bookmarks, take final Firestore and Storage backups, migrate and reconcile D1/R2/calendar data. Transactional email remains explicitly deferred."
 }

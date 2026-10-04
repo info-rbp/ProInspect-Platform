@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "action": "migrate",
-  "sourceSha": "9b88c5e59d8c6d899464256a1d6016d2294271d1",
-  "approve": "CUTOVER:9b88c5e59d8c6d899464256a1d6016d2294271d1",
-  "note": "Final production migration for the verified source with corrected Firestore backup location and actual production document bucket. Freeze legacy writer only after source-bucket preflight, capture D1 rollback bookmarks, take final Firestore and Storage backups, migrate and reconcile D1/R2/calendar data. Transactional email remains explicitly deferred."
+  "action": "readiness",
+  "sourceSha": "d37fa26ee2747a5018d36e9f4b440dfa6ae207a0",
+  "approve": "",
+  "note": "Read-only production readiness for the Storage bucket-metadata permission correction. No production resources, data, DNS or traffic are mutated."
 }

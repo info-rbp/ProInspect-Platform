@@ -85,7 +85,7 @@ jobs:
       GCP_PROJECT_ID: business-plan-applicatio-17047
       GCP_MIGRATION_SA: proinspect-prod-migration@business-plan-applicatio-17047.iam.gserviceaccount.com
       GCP_RUNTIME_SA: proinspect-booking-runtime@business-plan-applicatio-17047.iam.gserviceaccount.com
-      GCP_FIREBASE_STORAGE_BUCKET: business-plan-applicatio-17047.firebasestorage.app
+      GCP_FIREBASE_STORAGE_BUCKET: proinspect-client-docs-696236368989-production
       GOOGLE_CALENDAR_ID: c_4bf5fc54ee54bf60371059cf824ec7e018fb6c43ca66bbdd4051fafaa74e3c32@group.calendar.google.com
       REPO: ${{ github.repository }}
       GH_TOKEN: ${{ github.token }}
@@ -128,6 +128,27 @@ jobs:
           service_account: ${{ vars.GCP_TERRAFORM_SERVICE_ACCOUNT || 'proinspect-prod-terraform@business-plan-applicatio-17047.iam.gserviceaccount.com' }}
           create_credentials_file: true
       - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Verify read-only legacy Storage source
+        run: |
+          set -euo pipefail
+          SOURCE_BUCKET_URI="gs://$GCP_FIREBASE_STORAGE_BUCKET"
+          EXPECTED_BUCKET="proinspect-client-docs-696236368989-production"
+          [ "$GCP_FIREBASE_STORAGE_BUCKET" = "$EXPECTED_BUCKET" ] || {
+            echo "Legacy Storage source does not match the reviewed production runtime bucket." >&2
+            exit 1
+          }
+          ACTUAL_BUCKET="$(gcloud storage buckets describe "$SOURCE_BUCKET_URI" --project="$GCP_PROJECT_ID" --format='value(name)')"
+          [ "$ACTUAL_BUCKET" = "$GCP_FIREBASE_STORAGE_BUCKET" ] || {
+            echo "Reviewed production Storage source bucket was not found." >&2
+            exit 1
+          }
+          gcloud storage buckets add-iam-policy-binding "$SOURCE_BUCKET_URI" \
+            --member="serviceAccount:$GCP_MIGRATION_SA" \
+            --role=roles/storage.objectViewer >/dev/null
+          gcloud storage ls "$SOURCE_BUCKET_URI" \
+            --impersonate-service-account="$GCP_MIGRATION_SA" >/tmp/legacy-storage-root-list.txt
+          echo "Legacy Storage source verified for staging rehearsal."
 
       - name: Install isolated staging runtime secrets
         run: |

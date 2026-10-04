@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "action": "readiness",
+  "action": "bootstrap",
   "sourceSha": "5e0b028b1b5488b5390d661b707574b76edca150",
-  "approve": "",
-  "note": "Read-only production readiness for the exact end-state source after successful isolated staging rehearsal. Do not mutate production resources or traffic in this phase."
+  "approve": "PROVISION:5e0b028b1b5488b5390d661b707574b76edca150",
+  "note": "Protected production bootstrap for the exact verified and staging-rehearsed end-state source. Provision/discover production Cloudflare resources, apply reviewed D1 migrations, transfer existing cryptographic/report secrets, and verify the full Worker in maintenance mode. Do not cut custom-domain traffic in this phase."
 }

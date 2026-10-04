@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
   "action": "rehearse",
-  "sourceSha": "be502b205edbdb7077eb6abc12639dbc477edc96",
-  "note": "Rehearse the Firestore-compatible backup bucket correction. Transactional email remains explicitly deferred; migration, runtime, exact-source and non-email gates remain enforced."
+  "sourceSha": "9b88c5e59d8c6d899464256a1d6016d2294271d1",
+  "note": "Rehearse the actual production document-bucket source correction and read-only migration preflight. Transactional email remains explicitly deferred; migration, runtime, exact-source and non-email gates remain enforced."
 }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "action": "bootstrap",
-  "sourceSha": "a82a5f09a4f3be4f445016318294d13fee60510f",
-  "approve": "PROVISION:a82a5f09a4f3be4f445016318294d13fee60510f",
-  "note": "Protected-main production bootstrap after successful readiness. Production remains in maintenance mode. Transactional email acceptance is deferred."
+  "sourceSha": "d29ef03dca233f71cc237e8d56d139b0231ec770",
+  "approve": "PROVISION:d29ef03dca233f71cc237e8d56d139b0231ec770",
+  "note": "Protected production bootstrap for the exact source that fixes production Worker release stamping. D1 capacity and WIF trust are repaired. Transactional email remains explicitly deferred."
 }

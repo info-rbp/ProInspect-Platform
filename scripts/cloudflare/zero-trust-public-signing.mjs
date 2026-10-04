@@ -8,6 +8,11 @@ if(!/^[a-f0-9]{32}$/i.test(account))throw new Error('CLOUDFLARE_ACCOUNT_ID is re
 if(!['plan','apply'].includes(mode))throw new Error('Mode must be plan or apply.');
 
 const managed=[
+  {name:'ProInspect Signing Host SPA',domain:'signing.proinspect.systems/sign/*'},
+  {name:'ProInspect Signing Host API',domain:'signing.proinspect.systems/api/public/signing/*'},
+  {name:'ProInspect Signing Host Health',domain:'signing.proinspect.systems/api/public/workflow-health'},
+];
+const legacyManaged=[
   {name:'ProInspect Public Signing SPA',domain:'proinspect.systems/sign/*'},
   {name:'ProInspect Public Signing API',domain:'proinspect.systems/api/public/signing/*'},
   {name:'ProInspect Public Signing Health',domain:'proinspect.systems/api/public/workflow-health'},
@@ -114,6 +119,9 @@ async function createApp(spec){
     },
   });
 }
+async function deleteApp(appId){
+  return cf('/accounts/'+account+'/access/apps/'+encodeURIComponent(appId),{method:'DELETE'});
+}
 async function createBypass(appId){
   return cf('/accounts/'+account+'/access/apps/'+encodeURIComponent(appId)+'/policies',{
     method:'POST',
@@ -152,8 +160,8 @@ async function inspect(apps,spec){
 
 async function verifyPublicBoundary(){
   const requests=[
-    {name:'health',url:'https://proinspect.systems/api/public/workflow-health',expect:200,body:'"status":"ok"'},
-    {name:'signing-spa',url:'https://proinspect.systems/sign/access-check',expect:200},
+    {name:'health',url:'https://signing.proinspect.systems/api/public/workflow-health',expect:200,body:'"status":"ok"'},
+    {name:'signing-spa',url:'https://signing.proinspect.systems/sign/access-check',expect:200},
   ];
   for(const check of requests){
     const response=await fetch(check.url,{redirect:'manual',headers:{'User-Agent':'ProInspect-ZeroTrust-Verification/1.0'}});
@@ -162,9 +170,14 @@ async function verifyPublicBoundary(){
     if(check.body&&!body.includes(check.body))throw new Error(check.name+' response body did not contain expected marker.');
   }
 
-  const tokenProbe=await fetch('https://proinspect.systems/api/public/signing/not-a-real-token',{redirect:'manual',headers:{'User-Agent':'ProInspect-ZeroTrust-Verification/1.0'}});
+  const tokenProbe=await fetch('https://signing.proinspect.systems/api/public/signing/not-a-real-token',{redirect:'manual',headers:{'User-Agent':'ProInspect-ZeroTrust-Verification/1.0'}});
   if([301,302,303,307,308,401,403].includes(tokenProbe.status)){
     throw new Error('Token-scoped public signing API is still intercepted by Access (HTTP '+tokenProbe.status+').');
+  }
+
+  const protectedApi=await fetch('https://signing.proinspect.systems/api/me',{redirect:'manual',headers:{'User-Agent':'ProInspect-ZeroTrust-Verification/1.0'}});
+  if(![301,302,303,307,308,401,403].includes(protectedApi.status)){
+    throw new Error('Non-public Report Tool API is not protected on signing hostname (HTTP '+protectedApi.status+').');
   }
 
   const staff=await fetch('https://report.creation.proinspect.systems/api/public/workflow-health',{redirect:'manual',headers:{'User-Agent':'ProInspect-ZeroTrust-Verification/1.0'}});
@@ -172,15 +185,12 @@ async function verifyPublicBoundary(){
     throw new Error('Staff/editor hostname is no longer protected by Cloudflare Access (HTTP '+staff.status+').');
   }
 
-  const unrelated=await fetch('https://proinspect.systems/api/me',{redirect:'manual',headers:{'User-Agent':'ProInspect-ZeroTrust-Verification/1.0'}});
-  if(unrelated.status===200)throw new Error('Unexpected public /api/me response on marketing apex; signing route scope may be too broad.');
-
   console.log(JSON.stringify({
     publicHealth:200,
     publicSigningSpa:200,
     publicSigningApi:tokenProbe.status,
+    protectedSigningApi:protectedApi.status,
     staffEditorProtected:staff.status,
-    unrelatedMarketingApi:unrelated.status,
   },null,2));
 }
 
@@ -224,11 +234,25 @@ for(const entry of states){
   }
 }
 
-const finalApps=await listApps();
+let finalApps=await listApps();
 for(const spec of managed){
   const final=await inspect(finalApps,spec);
   if(final.state!=='ready')throw new Error('Managed Access application did not reconcile: '+spec.domain);
 }
 
 await verifyPublicBoundary();
-console.log('APPLY_OK: exact public signing paths bypass Access; staff/editor protection remains intact.');
+
+for(const spec of legacyManaged){
+  const legacy=await inspect(finalApps,spec);
+  if(legacy.app){
+    console.log('Removing obsolete exact-path Access application: '+spec.domain);
+    await deleteApp(legacy.app.id);
+  }
+}
+finalApps=await listApps();
+for(const spec of legacyManaged){
+  const leftovers=finalApps.filter(app=>app?.name===spec.name||domainOf(app)===spec.domain.toLowerCase());
+  if(leftovers.length)throw new Error('Obsolete Access application still exists: '+spec.domain);
+}
+
+console.log('APPLY_OK: signing-host public paths bypass Access; non-public and staff/editor routes remain protected; obsolete apex bypasses removed.');

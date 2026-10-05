@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "action": "readiness",
+  "action": "bootstrap",
   "sourceSha": "b57b3654d70158191566dff6ad1ecabe1d89e987",
-  "approve": "",
-  "note": "Read-only production capability readiness for the corrected exact-source release after successful isolated staging rehearsal. No production mutation is authorized in this phase."
+  "approve": "PROVISION:b57b3654d70158191566dff6ad1ecabe1d89e987",
+  "note": "Protected production bootstrap for the corrected exact-source release after successful staging rehearsal and readiness. Reuse the existing production Cloudflare resources, apply the reviewed schema, transfer existing production secrets, and verify the corrected Worker in maintenance mode. Do not migrate data or attach the custom domain in this phase."
 }

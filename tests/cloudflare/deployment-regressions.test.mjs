@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
 import {calendarInterval} from '../../scripts/cloudflare/calendar-interval.mjs';
+import {MARKETING_SITE_URL,shouldRedirectWorkersDevRoot} from '../../src/cloudflare/navigation.ts';
 
 test('migration library does not execute its CLI when imported by apply-production-migration',()=>{
  const module=new URL('../../scripts/cloudflare/migration.mjs',import.meta.url).href;
@@ -41,6 +42,15 @@ test('production control source, acceptance receipt and protected environment re
   const child=spawnSync('python3',['-c','import ast,sys;ast.parse(sys.stdin.read())'],{input:match[1].replace(/^          /gm,''),encoding:'utf8'});
   assert.equal(child.status,0,child.stderr);
  }
+});
+test('workers.dev root redirects to the marketing site without changing portal routes',()=>{
+ assert.equal(MARKETING_SITE_URL,'https://proinspect.systems/');
+ assert.equal(shouldRedirectWorkersDevRoot('https://proinspect-platform.delicate-dream-e4c9.workers.dev/','GET','/'),true);
+ assert.equal(shouldRedirectWorkersDevRoot('https://proinspect-platform.delicate-dream-e4c9.workers.dev/?release=test','HEAD','/'),true);
+ assert.equal(shouldRedirectWorkersDevRoot('https://proinspect-platform.delicate-dream-e4c9.workers.dev/book','GET','/book'),false);
+ assert.equal(shouldRedirectWorkersDevRoot('https://bookings.proinspect.systems/','GET','/'),false);
+ assert.equal(shouldRedirectWorkersDevRoot('https://proinspect.systems/','GET','/'),false);
+ assert.equal(shouldRedirectWorkersDevRoot('https://proinspect-platform.delicate-dream-e4c9.workers.dev/','POST','/'),false);
 });
 test('remote smoke cannot accept an older deployed release',()=>{
  const source=readFileSync(new URL('../../scripts/cloudflare/remote-smoke.mjs',import.meta.url),'utf8');

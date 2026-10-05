@@ -2,7 +2,9 @@ name: Cloudflare production release
 on:
   push:
     branches: [release/cloudflare-platform, main]
-    paths: [ops/cloudflare-production-request.json]
+    paths:
+    - ops/cloudflare-production-request.json
+    - .github/workflows/cloudflare-production.yml
 permissions:
   contents: read
   actions: read
@@ -14,6 +16,7 @@ concurrency:
 
 jobs:
   request:
+    if: ${{ !contains(github.event.head_commit.message, '[d1-drift-audit]') }}
     runs-on: ubuntu-latest
     outputs:
       action: ${{ steps.validate.outputs.action }}
@@ -82,6 +85,115 @@ jobs:
           fi
           echo "action=$ACTION" >> "$GITHUB_OUTPUT"
           echo "source=$SOURCE" >> "$GITHUB_OUTPUT"
+
+  d1_drift_audit:
+    if: ${{ contains(github.event.head_commit.message, '[d1-drift-audit]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SOURCE_SHA: 5e0b028b1b5488b5390d661b707574b76edca150
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: 8ca23ac6d2cc906d4dd13b8da5ea2b25
+      GCP_PROJECT_ID: business-plan-applicatio-17047
+      GCP_MIGRATION_SA: proinspect-prod-migration@business-plan-applicatio-17047.iam.gserviceaccount.com
+      GCP_RUNTIME_SA: proinspect-booking-runtime@business-plan-applicatio-17047.iam.gserviceaccount.com
+      GOOGLE_CALENDAR_ID: c_4bf5fc54ee54bf60371059cf824ec7e018fb6c43ca66bbdd4051fafaa74e3c32@group.calendar.google.com
+    steps:
+      - name: Check out frozen migration source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Authenticate approved migration identity
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PRODUCTION_PROJECT_ID || 'business-plan-applicatio-17047' }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER || 'projects/696236368989/locations/global/workloadIdentityPools/proinspect-property-services/providers/github' }}
+          service_account: ${{ vars.GCP_TERRAFORM_SERVICE_ACCOUNT || 'proinspect-prod-terraform@business-plan-applicatio-17047.iam.gserviceaccount.com' }}
+          create_credentials_file: true
+      - uses: google-github-actions/setup-gcloud@v3
+      - name: Export current canonical source without mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          MIGRATION_TOKEN="$(gcloud auth print-access-token --impersonate-service-account="$GCP_MIGRATION_SA")"
+          GOOGLE_OAUTH_ACCESS_TOKEN="$MIGRATION_TOKEN" npx tsx scripts/cloudflare/export-source.ts --project="$GCP_PROJECT_ID" --database=ai-studio-7242850f-c156-4268-aeb7-c8d47ff6931a --out=private-audit
+          node scripts/cloudflare/import-legacy-calendar-busy.mjs private-audit
+          unset MIGRATION_TOKEN
+      - name: Compare complete canonical source against production D1
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import {readFileSync} from 'node:fs';
+          import {createHash} from 'node:crypto';
+          const plan=JSON.parse(readFileSync('private-audit/d1-import-plan.json','utf8'));
+          const token=process.env.CLOUDFLARE_API_TOKEN;
+          const account=process.env.CLOUDFLARE_ACCOUNT_ID;
+          const api='https://api.cloudflare.com/client/v4';
+          const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+          const checksum=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+          async function cf(path,{method='GET',body}={}){
+            const r=await fetch(api+path,{method,headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined});
+            const j=await r.json();
+            if(!r.ok||j.success===false)throw new Error((j.errors||[]).map(x=>x.message||x.code).join(' | ')||('HTTP '+r.status));
+            return j.result;
+          }
+          const dbs=await cf('/accounts/'+account+'/d1/database?name='+encodeURIComponent('proinspect-platform-production')+'&per_page=100');
+          const exact=(dbs||[]).filter(x=>x.name==='proinspect-platform-production');
+          if(exact.length!==1)throw new Error('Expected exactly one production D1 database.');
+          const endpoint='/accounts/'+account+'/d1/database/'+exact[0].uuid+'/query';
+          async function query(sql,params=[]){
+            const result=await cf(endpoint,{method:'POST',body:{sql,params}});
+            const first=result?.[0];
+            if(!first?.success)throw new Error('D1 query failed.');
+            return first.results||[];
+          }
+          const byCollection=new Map();
+          for(const row of plan.rows){
+            if(!byCollection.has(row.collection))byCollection.set(row.collection,new Map());
+            byCollection.get(row.collection).set(row.id,row);
+          }
+          const sourceOnly=[],d1Only=[],mismatched=[],matching=[];
+          const collectionSummary={};
+          for(const [collection,sourceRows] of byCollection){
+            const destRows=await query('SELECT id,data FROM "'+collection+'"');
+            const dest=new Map(destRows.map(r=>[String(r.id),JSON.parse(r.data)]));
+            for(const [id,row] of sourceRows){
+              if(!dest.has(id)){sourceOnly.push({collection,id});continue;}
+              const dsha=checksum(dest.get(id));
+              if(dsha===row.sha256)matching.push({collection,id});
+              else mismatched.push({collection,id,sourceSha256:row.sha256,destinationSha256:dsha});
+            }
+            for(const id of dest.keys())if(!sourceRows.has(id))d1Only.push({collection,id});
+            collectionSummary[collection]={
+              source:sourceRows.size,
+              destination:dest.size,
+              sourceOnly:sourceOnly.filter(x=>x.collection===collection).length,
+              d1Only:d1Only.filter(x=>x.collection===collection).length,
+              mismatched:mismatched.filter(x=>x.collection===collection).length
+            };
+          }
+          const report={
+            schemaVersion:1,
+            sourceHash:plan.source?.sourceHash||null,
+            planDigest:plan.digest,
+            counts:plan.counts,
+            totals:{sourceRows:plan.rows.length,matching:matching.length,sourceOnly:sourceOnly.length,d1Only:d1Only.length,mismatched:mismatched.length},
+            collectionSummary,
+            sourceOnly:sourceOnly.map(({collection,id})=>({collection,id})),
+            d1Only:d1Only.map(({collection,id})=>({collection,id})),
+            mismatched:mismatched.map(({collection,id,sourceSha256,destinationSha256})=>({collection,id,sourceSha256,destinationSha256}))
+          };
+          console.log(JSON.stringify(report,null,2));
+          if(d1Only.length)process.exitCode=20;
+          NODE
 
   readiness:
     if: needs.request.outputs.action == 'readiness'

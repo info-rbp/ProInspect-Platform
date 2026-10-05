@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "action": "rehearse",
-  "sourceSha": "5e0b028b1b5488b5390d661b707574b76edca150",
-  "approve": "REHEARSE:5e0b028b1b5488b5390d661b707574b76edca150",
-  "note": "Isolated staging rehearsal for the exact verified end-state source. Exercise D1 migrations including integration_outbox, migrated relationships, Worker runtime, portals, R2, Report Tool boundary and non-production acceptance without touching production traffic."
+  "sourceSha": "b57b3654d70158191566dff6ad1ecabe1d89e987",
+  "approve": "REHEARSE:b57b3654d70158191566dff6ad1ecabe1d89e987",
+  "note": "Isolated staging rehearsal for the corrected exact-source release. Verified the workers.dev root marketing redirect alongside D1 migration, native scheduling, portals, R2 boundaries and non-production runtime checks; transactional email remains explicitly deferred."
 }

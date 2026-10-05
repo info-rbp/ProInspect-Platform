@@ -8,6 +8,7 @@ import { deliverMail, retryMail } from './mail.ts';
 import { deliverIntegrationEvent, retryIntegrationEvents } from './integrationEvents.ts';
 import { calendarInvitation } from './calendar.ts';
 import { adminDb } from './platform.ts';
+import { MARKETING_SITE_URL, shouldRedirectWorkersDevRoot } from './navigation.ts';
 
 app.listen(3000);
 const handler=httpServerHandler({port:3000});
@@ -40,6 +41,7 @@ export async function dispatch(request:Request,env:Bindings,ctx:any):Promise<Res
   if(path==='/healthz')return security(Response.json({ok:true,platform:'cloudflare',release:env.RELEASE_SHA||'development',mode:env.LAUNCH_MODE}),path);
   if(env.LAUNCH_MODE==='maintenance')return security(apiError('ProInspect is undergoing maintenance.',503),path);
   if(!['preview','live'].includes(env.LAUNCH_MODE))return security(apiError('Application not configured.',503),path);
+  if(shouldRedirectWorkersDevRoot(request.url,request.method,path))return security(Response.redirect(MARKETING_SITE_URL,302),path);
   if(new URL(request.url).origin!==new URL(env.APP_URL).origin)return security(apiError('Unrecognized application origin',403),path);
   const access=await verifyAccess(request,env);
   if(env.LAUNCH_MODE==='preview'&&!access)return security(apiError('This preview requires Cloudflare Access.',401),path);

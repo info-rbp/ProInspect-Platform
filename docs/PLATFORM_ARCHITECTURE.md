@@ -5,6 +5,7 @@ Status: authoritative Cloudflare end-state architecture.
 ## Public entry
 
 - `proinspect.systems` remains the separately deployed marketing website.
+- The temporary Cloudflare-assigned `*.workers.dev` application root redirects to `https://proinspect.systems/`; it is not a customer-facing portal landing page.
 - **Book Now** routes directly to `https://bookings.proinspect.systems/book`.
 - **Portal Login** routes to `https://bookings.proinspect.systems/`.
 - The application root is the gateway for Client, Tenant and Staff/Admin surfaces.

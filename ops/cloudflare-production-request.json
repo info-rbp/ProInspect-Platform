@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "action": "bootstrap",
-  "sourceSha": "fd790c7ea94db7373c16c57d30f99fd78a7a8ad9",
-  "approve": "PROVISION:fd790c7ea94db7373c16c57d30f99fd78a7a8ad9",
-  "note": "Protected bootstrap for the exact verified end-state source. Apply reviewed D1 migrations including integration_outbox, preserve rollback resources, transfer existing cryptographic/report secrets, and deploy the full Worker in maintenance mode. Do not cut the custom domain in this phase."
+  "action": "promote",
+  "sourceSha": "5e0b028b1b5488b5390d661b707574b76edca150",
+  "approve": "LIVE:5e0b028b1b5488b5390d661b707574b76edca150",
+  "note": "Promote the exact migrated production source to live mode on the Cloudflare workers.dev origin only. Rebuild from the frozen source, deploy the accepted Worker, verify the live backend-backed runtime, and record the pre-traffic production gate. Do not attach bookings.proinspect.systems or perform custom-domain cutover in this phase."
 }

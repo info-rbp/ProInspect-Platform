@@ -2,9 +2,7 @@ name: Cloudflare production release
 on:
   push:
     branches: [release/cloudflare-platform, main]
-    paths:
-    - ops/cloudflare-production-request.json
-    - .github/workflows/cloudflare-production.yml
+    paths: [ops/cloudflare-production-request.json]
 permissions:
   contents: read
   actions: read
@@ -16,7 +14,6 @@ concurrency:
 
 jobs:
   request:
-    if: ${{ !contains(github.event.head_commit.message, '[d1-drift-audit]') && !contains(github.event.head_commit.message, '[d1-canonical-reset]') }}
     runs-on: ubuntu-latest
     outputs:
       action: ${{ steps.validate.outputs.action }}
@@ -85,190 +82,6 @@ jobs:
           fi
           echo "action=$ACTION" >> "$GITHUB_OUTPUT"
           echo "source=$SOURCE" >> "$GITHUB_OUTPUT"
-
-  d1_canonical_reset:
-    if: ${{ contains(github.event.head_commit.message, '[d1-canonical-reset]') }}
-    environment: production
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      SOURCE_SHA: 5e0b028b1b5488b5390d661b707574b76edca150
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: 8ca23ac6d2cc906d4dd13b8da5ea2b25
-      GCP_PROJECT_ID: business-plan-applicatio-17047
-      GCP_MIGRATION_SA: proinspect-prod-migration@business-plan-applicatio-17047.iam.gserviceaccount.com
-      GCP_RUNTIME_SA: proinspect-booking-runtime@business-plan-applicatio-17047.iam.gserviceaccount.com
-      GOOGLE_CALENDAR_ID: c_4bf5fc54ee54bf60371059cf824ec7e018fb6c43ca66bbdd4051fafaa74e3c32@group.calendar.google.com
-    steps:
-      - name: Check out frozen migration source
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.SOURCE_SHA }}
-          persist-credentials: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-      - run: npm ci
-      - name: Authenticate approved migration identity
-        uses: google-github-actions/auth@v3
-        with:
-          project_id: ${{ vars.GCP_PRODUCTION_PROJECT_ID || 'business-plan-applicatio-17047' }}
-          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER || 'projects/696236368989/locations/global/workloadIdentityPools/proinspect-property-services/providers/github' }}
-          service_account: ${{ vars.GCP_TERRAFORM_SERVICE_ACCOUNT || 'proinspect-prod-terraform@business-plan-applicatio-17047.iam.gserviceaccount.com' }}
-          create_credentials_file: true
-      - uses: google-github-actions/setup-gcloud@v3
-      - name: Export current canonical source immediately before reset
-        shell: bash
-        run: |
-          set -euo pipefail
-          umask 077
-          MIGRATION_TOKEN="$(gcloud auth print-access-token --impersonate-service-account="$GCP_MIGRATION_SA")"
-          GOOGLE_OAUTH_ACCESS_TOKEN="$MIGRATION_TOKEN" npx tsx scripts/cloudflare/export-source.ts --project="$GCP_PROJECT_ID" --database=ai-studio-7242850f-c156-4268-aeb7-c8d47ff6931a --out=private-reset
-          node scripts/cloudflare/import-legacy-calendar-busy.mjs private-reset
-          unset MIGRATION_TOKEN
-      - name: Re-audit, capture bookmark, and clear canonical snapshot only
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p .cloudflare
-          node --input-type=module <<'NODE'
-          import {readFileSync,writeFileSync} from 'node:fs';
-          import {createHash} from 'node:crypto';
-
-          const plan=JSON.parse(readFileSync('private-reset/d1-import-plan.json','utf8'));
-          const token=process.env.CLOUDFLARE_API_TOKEN;
-          const account=process.env.CLOUDFLARE_ACCOUNT_ID;
-          const api='https://api.cloudflare.com/client/v4';
-          const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
-          const checksum=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
-
-          async function raw(path,{method='GET',body}={}){
-            const response=await fetch(api+path,{method,headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined});
-            const payload=await response.json().catch(()=>({}));
-            if(!response.ok||payload.success===false)throw new Error((payload.errors||[]).map(x=>x.message||x.code).join(' | ')||('HTTP '+response.status));
-            return payload.result;
-          }
-
-          const dbs=await raw('/accounts/'+account+'/d1/database?name='+encodeURIComponent('proinspect-platform-production')+'&per_page=100');
-          const exact=(dbs||[]).filter(x=>x.name==='proinspect-platform-production');
-          if(exact.length!==1)throw new Error('Expected exactly one production D1 database.');
-          const db=exact[0];
-          const endpoint='/accounts/'+account+'/d1/database/'+db.uuid+'/query';
-
-          async function query(sql,params=[]){
-            const result=await raw(endpoint,{method:'POST',body:{sql,params}});
-            const first=result?.[0];
-            if(!first?.success)throw new Error('D1 query failed.');
-            return first.results||[];
-          }
-          async function batch(statements){
-            if(!statements.length)return;
-            const result=await raw(endpoint,{method:'POST',body:{batch:statements}});
-            if(!Array.isArray(result)||result.some(x=>x?.success===false))throw new Error('D1 canonical reset batch failed.');
-          }
-
-          const canonicalCollections=Object.keys(plan.counts).sort();
-          const sourceMaps=new Map(canonicalCollections.map(name=>[name,new Map()]));
-          for(const row of plan.rows)sourceMaps.get(row.collection).set(row.id,row);
-
-          const sourceOnly=[],d1Only=[],mismatched=[],matching=[];
-          const beforeCounts={};
-          for(const collection of canonicalCollections){
-            const sourceRows=sourceMaps.get(collection);
-            const rows=await query('SELECT id,data FROM "'+collection+'"');
-            beforeCounts[collection]=rows.length;
-            const dest=new Map(rows.map(r=>[String(r.id),JSON.parse(r.data)]));
-            for(const [id,row] of sourceRows){
-              if(!dest.has(id)){sourceOnly.push({collection,id});continue;}
-              const dsha=checksum(dest.get(id));
-              if(dsha===row.sha256)matching.push({collection,id});
-              else mismatched.push({collection,id,sourceSha256:row.sha256,destinationSha256:dsha});
-            }
-            for(const id of dest.keys())if(!sourceRows.has(id))d1Only.push({collection,id});
-          }
-
-          const audited={
-            sourceRows:plan.rows.length,
-            matching:matching.length,
-            sourceOnly:sourceOnly.length,
-            d1Only:d1Only.length,
-            mismatched:mismatched.length
-          };
-          console.log('Canonical pre-reset audit: '+JSON.stringify(audited));
-          if(d1Only.length){
-            console.log(JSON.stringify({d1Only:d1Only.map(x=>({collection:x.collection,id:x.id}))},null,2));
-            throw new Error('Refusing canonical reset because D1-only canonical records exist.');
-          }
-
-          for(const appendOnly of ['auditEvents','sensitiveAuditEvents']){
-            if((beforeCounts[appendOnly]||0)!==0 || (plan.counts[appendOnly]||0)!==0){
-              throw new Error('Refusing reset because append-only audit collection is not empty: '+appendOnly);
-            }
-          }
-
-          const tableRows=await query("SELECT name FROM sqlite_master WHERE type='table'");
-          const tableNames=new Set(tableRows.map(x=>String(x.name)));
-          const operationalTables=['auth_identities','login_challenges','auth_sessions','rate_windows','email_outbox','migration_runs','migration_objects','integration_outbox'];
-          const operationalBefore={};
-          for(const table of operationalTables){
-            if(tableNames.has(table))operationalBefore[table]=Number((await query('SELECT COUNT(*) AS n FROM "'+table+'"'))[0]?.n||0);
-          }
-
-          const bookmarkResult=await raw('/accounts/'+account+'/d1/database/'+db.uuid+'/time_travel/bookmark');
-          const bookmark=String(bookmarkResult?.bookmark||'');
-          if(!bookmark)throw new Error('Unable to capture pre-reset D1 Time Travel bookmark.');
-
-          const resetCollections=canonicalCollections.filter(x=>!['auditEvents','sensitiveAuditEvents'].includes(x));
-          for(let i=0;i<resetCollections.length;i+=20){
-            await batch(resetCollections.slice(i,i+20).map(collection=>({sql:'DELETE FROM "'+collection+'"'})));
-          }
-
-          const afterCounts={};
-          for(const collection of canonicalCollections){
-            afterCounts[collection]=Number((await query('SELECT COUNT(*) AS n FROM "'+collection+'"'))[0]?.n||0);
-            if(afterCounts[collection]!==0)throw new Error('Canonical reset did not empty '+collection+'.');
-          }
-
-          const operationalAfter={};
-          for(const [table,before] of Object.entries(operationalBefore)){
-            const after=Number((await query('SELECT COUNT(*) AS n FROM "'+table+'"'))[0]?.n||0);
-            operationalAfter[table]=after;
-            if(after!==before)throw new Error('Operational table changed during canonical reset: '+table);
-          }
-
-          const evidence={
-            schemaVersion:1,
-            sourceSha:process.env.SOURCE_SHA,
-            sourceHash:plan.source?.sourceHash||null,
-            planDigest:plan.digest,
-            databaseName:'proinspect-platform-production',
-            bookmarkCaptured:true,
-            bookmark,
-            audited,
-            beforeCounts,
-            operationalBefore,
-            operationalAfter,
-            canonicalTablesEmptied:canonicalCollections.length,
-            completedAt:new Date().toISOString()
-          };
-          writeFileSync('.cloudflare/d1-canonical-reset-evidence.json',JSON.stringify(evidence,null,2)+'\n',{mode:0o600});
-          console.log(JSON.stringify({
-            sourceHash:evidence.sourceHash,
-            planDigest:evidence.planDigest,
-            bookmarkCaptured:true,
-            audited,
-            canonicalTablesEmptied:evidence.canonicalTablesEmptied,
-            operationalTablesPreserved:Object.keys(operationalBefore)
-          },null,2));
-          NODE
-      - name: Upload canonical reset rollback evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: d1-canonical-reset-evidence-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .cloudflare/d1-canonical-reset-evidence.json
-          if-no-files-found: error
-          retention-days: 30
 
   readiness:
     if: needs.request.outputs.action == 'readiness'

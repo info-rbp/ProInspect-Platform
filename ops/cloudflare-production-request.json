@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "action": "promote",
-  "sourceSha": "5e0b028b1b5488b5390d661b707574b76edca150",
-  "approve": "LIVE:5e0b028b1b5488b5390d661b707574b76edca150",
-  "note": "Promote the exact migrated production source to live mode on the Cloudflare workers.dev origin only. Rebuild from the frozen source, deploy the accepted Worker, verify the live backend-backed runtime, and record the pre-traffic production gate. Do not attach bookings.proinspect.systems or perform custom-domain cutover in this phase."
+  "action": "readiness",
+  "sourceSha": "b57b3654d70158191566dff6ad1ecabe1d89e987",
+  "approve": "",
+  "note": "Read-only production capability readiness for the corrected exact-source release after successful isolated staging rehearsal. No production mutation is authorized in this phase."
 }

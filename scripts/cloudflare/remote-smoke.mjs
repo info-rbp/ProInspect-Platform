@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 const base=(process.env.CLOUDFLARE_SMOKE_URL||'').replace(/\/$/,'');
 const mode=process.env.CLOUDFLARE_EXPECT_MODE||'live';
 const source=(process.env.SOURCE_SHA||process.env.RELEASE_SHA||'').trim();
+const workersDevHost=/\.workers\.dev$/i.test(new URL(base).hostname);
+const marketingSite='https://proinspect.systems/';
 if(!/^https:\/\//.test(base)||!['maintenance','live'].includes(mode)||!/^[a-f0-9]{40}$/.test(source))throw new Error('Smoke URL, mode and exact expected source SHA are required');
 async function req(path,expected,options={}){
  const response=await fetch(base+path,{redirect:'manual',signal:AbortSignal.timeout(15000),...options,headers:{Origin:base,'Cache-Control':'no-cache',...options.headers}});
@@ -36,7 +38,14 @@ if(mode==='maintenance'){
   try{
    const services=await (await req('/api/services?release='+source,200)).json();assert.ok(Array.isArray(services.services)&&services.services.length>0);
    const config=await (await req('/api/platform/config?release='+source,200)).json();assert.equal(config.platform,'cloudflare');assert.equal(config.calendarProvider,'ProInspect');
-   for(const page of ['/','/book','/client','/tenant','/admin']){const text=await (await req(page+'?release='+source,200,{headers:{'Sec-Fetch-Mode':'navigate'}})).text();assert.match(text,/id="root"/);}
+   if(workersDevHost){
+    const root=await req('/?release='+source,302,{headers:{'Sec-Fetch-Mode':'navigate'}});
+    assert.equal(root.headers.get('location'),marketingSite);
+   }else{
+    const text=await (await req('/?release='+source,200,{headers:{'Sec-Fetch-Mode':'navigate'}})).text();
+    assert.match(text,/id="root"/);
+   }
+   for(const page of ['/book','/client','/tenant','/admin']){const text=await (await req(page+'?release='+source,200,{headers:{'Sec-Fetch-Mode':'navigate'}})).text();assert.match(text,/id="root"/);}
    for(const api of ['/api/admin/session','/api/client/session','/api/tenant/session'])await req(api+'?release='+source,401);
    liveReady=true;break;
   }catch(error){lastError=error;if(attempt<29)await new Promise(resolve=>setTimeout(resolve,2000));}

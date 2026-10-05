@@ -1,8 +1,0 @@
-{
-  "schemaVersion": 1,
-  "action": "apply",
-  "approve": "REPORT-TOOL-D1-MIGRATE:9616903d28247498224e3c2dd96404a8e42b5a1c",
-  "reportToolSha": "9616903d28247498224e3c2dd96404a8e42b5a1c",
-  "databaseId": "777186a0-e6ca-43f5-8f50-448bd4454046",
-  "note": "Owner-authorized production Report Tool D1 migration repair. Capture a rollback bookmark first; apply only canonical repository migrations."
-}
